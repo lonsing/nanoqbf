@@ -68,6 +68,7 @@ struct Assignment
   char   bits[4];
   
   static Assignment* make_assignemnt(std::vector<Lit>& base);
+  static void destroy_assignemnt(Assignment* assignemnt);
   void set(int index, bool value);
   bool get(int index);
   

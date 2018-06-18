@@ -55,6 +55,11 @@ Assignment* Assignment::make_assignemnt(std::vector<Lit>& base)
   return a;
 }
 
+void Assignment::destroy_assignemnt(Assignment* assignemnt)
+{
+  delete[] (char*)assignemnt;
+}
+
 void Assignment::set(int index, bool value)
 {
   assert(index >= 0 && index < size);
