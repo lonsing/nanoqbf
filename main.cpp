@@ -1,8 +1,9 @@
 #include <iostream>
 #include <zlib.h>
 
-#include "Types.h"
+#include "types.h"
 #include "Reader.h"
+#include "Logger.h"
 
 int main(int argc, char* argv[])
 {
@@ -27,7 +28,9 @@ int main(int argc, char* argv[])
   if(reader.readQBF(formula)) return -3;
   gzclose(file);
   
-  std::cout << formula << std::endl;
+  // std::cout << formula << std::endl;
+  
+  LOG("You will only see me in debug mode!");
   
   return 0;
 }

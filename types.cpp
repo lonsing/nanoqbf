@@ -2,9 +2,11 @@
 // Created by vedad on 17/06/18.
 //
 
-#include "Types.h"
+#include "types.h"
 #include <algorithm>
 #include <assert.h>
+#include <bits/functional_hash.h>
+#include <cstring>
 
 std::ostream& operator<<(std::ostream& out, const Quant& q)
 {
@@ -21,6 +23,69 @@ std::ostream& operator<<(std::ostream& out, const Clause& c)
   for (const_lit_iterator l_iter = c.begin_a(); l_iter != c.end_a(); l_iter++)
     out << *l_iter << " ";
   return out;
+}
+
+Assignment* Assignment::make_assignemnt(std::vector<Lit>& base)
+{
+  unsigned int bytes = sizeof(Assignment) - 3 + (base.size() / 8);
+  alignas(8) char* ptr = new char[bytes];
+  Assignment* a = (Assignment*)ptr;
+  a->size = (unsigned int)base.size();
+  
+  auto it = base.begin(); // iter for base
+  int shifts = 0;         // shifts left for byte
+  int byte_id = 0;        // index of bits field
+  while(it != base.end())
+  {
+    shifts = 8;
+    char byte = 0;
+    while(it != base.end() && shifts > 0)
+    {
+      byte = (byte << 1) ^ (*it > 0);
+      it++; shifts--;
+    }
+    if(it == base.end())
+      byte <<= shifts;
+    a->bits[byte_id] = byte;
+    byte_id++;
+  }
+  
+  a->hash_value = std::_Hash_impl::hash(a->bits, (a->size / 8) + 1);
+  
+  return a;
+}
+
+void Assignment::set(int index, bool value)
+{
+  assert(index >= 0 && index < size);
+  assert(value == 0 || value == 1);
+  
+  unsigned byte_id = (unsigned)index / 8;
+  unsigned bit_id = 7 - (unsigned)index % 8;
+  // the following sets the correct bit
+  bits[byte_id] ^= (-((char)value) ^ bits[byte_id]) & ((char)0x01 << bit_id);
+}
+
+bool Assignment::get(int index)
+{
+  assert(index >= 0 && index < size);
+  
+  unsigned byte_id = (unsigned)index / 8;
+  unsigned bit_id = 7 - (unsigned)index % 8;
+  
+  return (bool)((bits[byte_id] >> bit_id) & 0x01);
+}
+
+void Assignment::update()
+{
+  hash_value = std::_Hash_impl::hash(bits, (size / 8) + 1);
+}
+
+bool operator==(const Assignment& lhs, const Assignment& rhs)
+{
+  return (lhs.size == rhs.size) &&
+         (lhs.hash_value == rhs.hash_value) &&
+         std::memcmp(lhs.bits, rhs.bits, lhs.size / 8 + 1) == 0;
 }
 
 Formula::~Formula()
@@ -72,7 +137,7 @@ void Formula::addClause(std::vector<Lit>& c)
   }
   
   size_t bytes = sizeof (Clause) + (tmp_exists.size() + tmp_forall.size() - 2) * sizeof (Lit);
-  alignas(8) char * ptr = new char[bytes];
+  alignas(8) char* ptr = new char[bytes];
   Clause* clause = (Clause*) ptr;
   
   clause->size_e = (unsigned int)tmp_exists.size();
@@ -108,7 +173,7 @@ int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
   }
   
   size_t bytes = sizeof (Quant) + (variables.size() - 2) * sizeof (Var);
-  alignas(8) char * ptr = new char[bytes];
+  alignas(8) char* ptr = new char[bytes];
   Quant* quant= (Quant*) ptr;
   
   quant->type = type;

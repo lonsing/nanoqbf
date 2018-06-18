@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <iostream>
+#include <bitset>
 
 typedef int             Lit;
 typedef int*            lit_iterator;
@@ -19,6 +20,11 @@ typedef const unsigned* const_var_iterator;
 inline Var var(Lit l)
 {
   return std::abs(l);
+}
+
+inline bool sign(Lit l)
+{
+  return l < 0;
 }
 
 inline bool lit_order(Lit a, Lit b)
@@ -37,8 +43,8 @@ enum QuantType
 
 struct Quant
 {
-  QuantType type;
-  unsigned int size;
+  QuantType    type : 2;
+  unsigned int size : 30;
   Var vars[2];
   const_var_iterator begin() const {return vars;}
   const_var_iterator end() const {return vars + size;}
@@ -55,8 +61,23 @@ struct Clause
   const_lit_iterator end_a() const {return lits + size_e + size_a;}
 };
 
-struct Formula
+struct Assignment
 {
+  size_t hash_value;
+  unsigned int size;
+  char   bits[4];
+  
+  static Assignment* make_assignemnt(std::vector<Lit>& base);
+  void set(int index, bool value);
+  bool get(int index);
+  
+  void update(); // must be called after modifying the object
+  friend bool operator==(const Assignment& lhs, const Assignment& rhs);
+};
+
+class Formula
+{
+public:
   ~Formula();
   
   inline bool isQuantified(Var v)

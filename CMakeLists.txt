@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 14)
 include(${CMAKE_CURRENT_SOURCE_DIR}/AssureOutOfSourceBuilds.txt)
 AssureOutOfSourceBuilds()
 
-set(SOURCE_FILES main.cpp MiniQBF.cpp MiniQBF.h ParseUtils.h Reader.cpp Reader.h Types.cpp Types.h)
+set(SOURCE_FILES main.cpp MiniQBF.cpp MiniQBF.h parseutils.h Reader.cpp Reader.h types.cpp types.h Logger.cpp Logger.h hashes.cpp hashes.h)
 
 add_executable(miniqbf ${SOURCE_FILES})
 

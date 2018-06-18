@@ -5,8 +5,8 @@
 #ifndef MINIQBF_READER_H
 #define MINIQBF_READER_H
 
-#include "ParseUtils.h"
-#include "Types.h"
+#include "parseutils.h"
+#include "types.h"
 
 class Reader
 {
