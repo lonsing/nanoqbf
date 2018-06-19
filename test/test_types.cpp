@@ -27,7 +27,7 @@ void test_make_assignment()
     }
     std::cout << std::endl;
     
-    Assignment* a = Assignment::make_assignemnt(my_lits);
+    Assignment* a = Assignment::make_assignment(my_lits);
     assert(a->size == my_lits.size());
     for(int j = 0; j < n; j++)
       assert(a->get(j) != sign(my_lits[j]));
@@ -40,8 +40,38 @@ void test_make_assignment()
       assert(a->get(p) == s);
     }
     
-    Assignment::destroy_assignemnt(a);
+    Assignment::destroy_assignment(a);
   }
+}
+
+void test_hash_assignment()
+{
+  std::vector<Lit> my_lits;
+  std::random_device dev;
+  std::mt19937 rand(dev());
+  
+  for (int i = 0; i < 9; i++)
+    my_lits.push_back(rand() % 2 ? i + 1 : -(i + 1));
+  Assignment* a = Assignment::make_assignment(my_lits);
+  
+  std::cout << "a : " << a->hash_value << " : ";
+  for (int i = 0; i < 9; i++)
+    std::cout << my_lits[i] << " ";
+  std::cout << std::endl;
+  
+  for(int i = 9; i < 14; i++)
+    my_lits.push_back(-(i + 1));
+  Assignment* b = Assignment::make_assignment(my_lits);
+  
+  std::cout << "b : " << b->hash_value << " : ";
+  for (int i = 0; i < 14; i++)
+    std::cout << my_lits[i] << " ";
+  std::cout << std::endl;
+  
+  assert(a->hash_value != b->hash_value);
+  
+  Assignment::destroy_assignment(a);
+  Assignment::destroy_assignment(b);
 }
 
 
@@ -50,6 +80,6 @@ int main()
   LOG("Hello there, this is the testing file");
   
   test_make_assignment();
-  
+  test_hash_assignment();
   return 0;
 }

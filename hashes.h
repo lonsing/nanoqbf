@@ -11,7 +11,7 @@ namespace std
 {
   template<> struct hash<Assignment>
   {
-    size_t operator()(const Assignment& assignment);
+    size_t operator()(const Assignment& assignment) const;
   };
 }
 

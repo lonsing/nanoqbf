@@ -46,6 +46,10 @@ struct Quant
   QuantType    type : 2;
   unsigned int size : 30;
   Var vars[2];
+  
+  static Quant* make_quant(QuantType qtype, std::vector<Var>& vars);
+  static void destroy_quant(Quant* quant);
+  
   const_var_iterator begin() const {return vars;}
   const_var_iterator end() const {return vars + size;}
 };
@@ -55,6 +59,10 @@ struct Clause
   unsigned int size_e;
   unsigned int size_a;
   Lit lits[2];
+  
+  static Clause* make_clause(std::vector<Lit>& exi, std::vector<Lit>& uni);
+  static void destroy_clause(Clause* clause);
+  
   const_lit_iterator begin_e() const {return lits;}
   const_lit_iterator end_e() const {return lits + size_e;}
   const_lit_iterator begin_a() const {return lits + size_e;}
@@ -67,8 +75,8 @@ struct Assignment
   unsigned int size;
   char   bits[4];
   
-  static Assignment* make_assignemnt(std::vector<Lit>& base);
-  static void destroy_assignemnt(Assignment* assignemnt);
+  static Assignment* make_assignment(std::vector<Lit>& base);
+  static void destroy_assignment(Assignment* assignment);
   void set(int index, bool value);
   bool get(int index);
   

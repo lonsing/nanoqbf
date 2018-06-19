@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <bits/functional_hash.h>
 #include <cstring>
+#include <new>
 
 std::ostream& operator<<(std::ostream& out, const Quant& q)
 {
@@ -25,12 +26,58 @@ std::ostream& operator<<(std::ostream& out, const Clause& c)
   return out;
 }
 
-Assignment* Assignment::make_assignemnt(std::vector<Lit>& base)
+Quant* Quant::make_quant(QuantType qtype, std::vector<Var>& vars)
 {
-  unsigned int bytes = sizeof(Assignment) - 3 + (base.size() / 8);
-  alignas(8) char* ptr = new char[bytes];
-  Assignment* a = (Assignment*)ptr;
-  a->size = (unsigned int)base.size();
+  size_t bytes = sizeof (Quant) + (vars.size() - 2) * sizeof (Var);
+  char* ptr = new(std::align_val_t(4)) char[bytes];
+  assert(((size_t)ptr & 0x3UL) == 0x0UL);
+  Quant* quant = (Quant*) ptr;
+  
+  quant->type = qtype;
+  quant->size = (unsigned int)vars.size();
+  
+  for(int i = 0; i < quant->size; i++)
+    quant->vars[i] = vars[i];
+}
+
+void Quant::destroy_quant(Quant* quant)
+{
+  ::operator delete[]((char*)quant, std::align_val_t(4));
+}
+
+Clause* Clause::make_clause(std::vector<Lit>& exi, std::vector<Lit>& uni)
+{
+  unsigned int bytes = sizeof (Clause) + (exi.size() + uni.size() - 2) * sizeof (Lit);
+  char* ptr = new(std::align_val_t(4)) char[bytes];
+  assert(((size_t)ptr & 0x3UL) == 0x0UL);
+  Clause* clause = (Clause*) ptr;
+  
+  clause->size_e = (unsigned int)exi.size();
+  clause->size_a = (unsigned int)uni.size();
+  
+  for(int i = 0; i < clause->size_e; i++)
+    clause->lits[i] = exi[i];
+  
+  for(int i = 0; i < clause->size_a; i++)
+    clause->lits[clause->size_e + i] = uni[i];
+  
+  return clause;
+}
+
+void Clause::destroy_clause(Clause* clause)
+{
+  ::operator delete[]((char*)clause, std::align_val_t(4));
+}
+
+Assignment* Assignment::make_assignment(std::vector<Lit>& base)
+{
+  unsigned int bits_size = (unsigned int)(base.size() + 7) / 8;
+  unsigned int bytes = sizeof(Assignment) - sizeof bits + bits_size;
+  char* ptr = new(std::align_val_t(8)) char[bytes];
+  assert(((size_t)ptr & 0x7UL) == 0x0UL);
+  
+  Assignment* assignment = (Assignment*)ptr;
+  assignment->size = (unsigned int)base.size();
   
   auto it = base.begin(); // iter for base
   int shifts = 0;         // shifts left for byte
@@ -46,18 +93,18 @@ Assignment* Assignment::make_assignemnt(std::vector<Lit>& base)
     }
     if(it == base.end())
       byte <<= shifts;
-    a->bits[byte_id] = byte;
+    assignment->bits[byte_id] = byte;
     byte_id++;
   }
   
-  a->hash_value = std::_Hash_impl::hash(a->bits, (a->size / 8) + 1);
+  assignment->hash_value = std::_Hash_impl::hash(&(assignment->size), sizeof size + bits_size);
   
-  return a;
+  return assignment;
 }
 
-void Assignment::destroy_assignemnt(Assignment* assignemnt)
+void Assignment::destroy_assignment(Assignment* assignment)
 {
-  delete[] (char*)assignemnt;
+  ::operator delete[]((char*)assignment, std::align_val_t(8));
 }
 
 void Assignment::set(int index, bool value)
@@ -83,22 +130,23 @@ bool Assignment::get(int index)
 
 void Assignment::update()
 {
-  hash_value = std::_Hash_impl::hash(bits, (size / 8) + 1);
+  unsigned int bits_size = (size + 7) / 8;
+  hash_value = std::_Hash_impl::hash(&(size), sizeof size + bits_size);
 }
 
 bool operator==(const Assignment& lhs, const Assignment& rhs)
 {
   return (lhs.size == rhs.size) &&
          (lhs.hash_value == rhs.hash_value) &&
-         std::memcmp(lhs.bits, rhs.bits, lhs.size / 8 + 1) == 0;
+         std::memcmp(lhs.bits, rhs.bits, (unsigned int)(lhs.size + 7) / 8) == 0;
 }
 
 Formula::~Formula()
 {
   for (Quant* q : prefix)
-    delete[] (char*)q;
+    Quant::destroy_quant(q);
   for (Clause* c : matrix)
-    delete[] (char*)c;
+    Clause::destroy_clause(c);
 }
 
 void Formula::addClause(std::vector<Lit>& c)
@@ -141,18 +189,7 @@ void Formula::addClause(std::vector<Lit>& c)
       tmp_forall.push_back(l);
   }
   
-  size_t bytes = sizeof (Clause) + (tmp_exists.size() + tmp_forall.size() - 2) * sizeof (Lit);
-  alignas(8) char* ptr = new char[bytes];
-  Clause* clause = (Clause*) ptr;
-  
-  clause->size_e = (unsigned int)tmp_exists.size();
-  clause->size_a = (unsigned int)tmp_forall.size();
-  
-  for(int li = 0; li < clause->size_e; li++)
-    clause->lits[li] = tmp_exists[li];
-  for(int li = 0; li < clause->size_a; li++)
-    clause->lits[clause->size_e + li] = tmp_forall[li];
-  
+  Clause* clause = Clause::make_clause(tmp_exists, tmp_forall);
   matrix.push_back(clause);
 }
 
@@ -177,16 +214,7 @@ int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
     return 0;
   }
   
-  size_t bytes = sizeof (Quant) + (variables.size() - 2) * sizeof (Var);
-  alignas(8) char* ptr = new char[bytes];
-  Quant* quant= (Quant*) ptr;
-  
-  quant->type = type;
-  quant->size = (unsigned int)variables.size();
-  
-  for(int i = 0; i < quant->size; i++)
-    quant->vars[i] = variables[i];
-  
+  Quant* quant = Quant::make_quant(type, variables);
   prefix.push_back(quant);
   
   return 0;
