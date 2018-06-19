@@ -19,25 +19,32 @@ std::ostream& operator<<(std::ostream& out, const Quant& q)
 
 std::ostream& operator<<(std::ostream& out, const Clause& c)
 {
+  if(c.size_e > 0)
+    out << "e ";
   for (const_lit_iterator l_iter = c.begin_e(); l_iter != c.end_e(); l_iter++)
     out << *l_iter << " ";
+  if(c.size_a)
+    out << "a ";
   for (const_lit_iterator l_iter = c.begin_a(); l_iter != c.end_a(); l_iter++)
     out << *l_iter << " ";
   return out;
 }
 
-Quant* Quant::make_quant(QuantType qtype, std::vector<Var>& vars)
+Quant* Quant::make_quant(QuantType qtype, std::vector<Var>& variables)
 {
-  size_t bytes = sizeof (Quant) + (vars.size() - 2) * sizeof (Var);
+  size_t bytes = sizeof (Quant) + (variables.size() - 2) * sizeof (Var);
   char* ptr = new(std::align_val_t(4)) char[bytes];
+  
   assert(((size_t)ptr & 0x3UL) == 0x0UL);
   Quant* quant = (Quant*) ptr;
   
   quant->type = qtype;
-  quant->size = (unsigned int)vars.size();
+  quant->size = (unsigned int)variables.size();
   
   for(int i = 0; i < quant->size; i++)
-    quant->vars[i] = vars[i];
+    quant->vars[i] = variables[i];
+  
+  return quant;
 }
 
 void Quant::destroy_quant(Quant* quant)
@@ -55,10 +62,10 @@ Clause* Clause::make_clause(std::vector<Lit>& exi, std::vector<Lit>& uni)
   clause->size_e = (unsigned int)exi.size();
   clause->size_a = (unsigned int)uni.size();
   
-  for(int i = 0; i < clause->size_e; i++)
+  for(unsigned int i = 0; i < clause->size_e; i++)
     clause->lits[i] = exi[i];
   
-  for(int i = 0; i < clause->size_a; i++)
+  for(unsigned int i = 0; i < clause->size_a; i++)
     clause->lits[clause->size_e + i] = uni[i];
   
   return clause;
@@ -107,23 +114,23 @@ void Assignment::destroy_assignment(Assignment* assignment)
   ::operator delete[]((char*)assignment, std::align_val_t(8));
 }
 
-void Assignment::set(int index, bool value)
+void Assignment::set(unsigned int index, bool value)
 {
-  assert(index >= 0 && index < size);
+  assert(index < size);
   assert(value == 0 || value == 1);
   
-  unsigned byte_id = (unsigned)index / 8;
-  unsigned bit_id = 7 - (unsigned)index % 8;
+  unsigned byte_id = index / 8;
+  unsigned bit_id = 7 - (index % 8);
   // the following sets the correct bit
   bits[byte_id] ^= (-((char)value) ^ bits[byte_id]) & ((char)0x01 << bit_id);
 }
 
-bool Assignment::get(int index)
+bool Assignment::get(unsigned int index)
 {
-  assert(index >= 0 && index < size);
+  assert(index < size);
   
-  unsigned byte_id = (unsigned)index / 8;
-  unsigned bit_id = 7 - (unsigned)index % 8;
+  unsigned byte_id = index / 8;
+  unsigned bit_id = 7 - (index % 8);
   
   return (bool)((bits[byte_id] >> bit_id) & 0x01);
 }
@@ -138,7 +145,7 @@ bool operator==(const Assignment& lhs, const Assignment& rhs)
 {
   return (lhs.size == rhs.size) &&
          (lhs.hash_value == rhs.hash_value) &&
-         std::memcmp(lhs.bits, rhs.bits, (unsigned int)(lhs.size + 7) / 8) == 0;
+         std::memcmp(lhs.bits, rhs.bits, (lhs.size + 7) / 8) == 0;
 }
 
 Formula::~Formula()
@@ -147,6 +154,12 @@ Formula::~Formula()
     Quant::destroy_quant(q);
   for (Clause* c : matrix)
     Clause::destroy_clause(c);
+}
+
+Formula::Formula()
+{
+  prefix.push_back(nullptr);
+  position_counters.push_back(0);
 }
 
 void Formula::addClause(std::vector<Lit>& c)
@@ -198,20 +211,29 @@ int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
   if(type == QuantType::NONE)
     type = QuantType::EXISTS;
   
+  if (prefix.size() == 1 && type == QuantType::EXISTS)
+  {
+    for (const Var v : variables)
+    {
+      free_variables.push_back(v);
+      if (quantify(v, 0))
+      {
+        printf("Variable %d is already quantified", v);
+        return -1;
+      }
+    }
+    return 0;
+  }
+  
+  position_counters.push_back(0);
+  
   for (const Var v : variables)
   {
-    if (quantify(v, type))
+    if (quantify(v, (unsigned int)prefix.size()))
     {
       printf("Variable %d is already quantified", v);
       return -1;
     }
-  }
-  
-  if (prefix.empty() && type == QuantType::EXISTS)
-  {
-    for (const Var v : variables)
-      free_variables.push_back(v);
-    return 0;
   }
   
   Quant* quant = Quant::make_quant(type, variables);
@@ -220,35 +242,49 @@ int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
   return 0;
 }
 
+void Formula::finalise()
+{
+  if(free_variables.empty())
+  {
+    prefix.erase(prefix.begin());
+    position_counters.erase(position_counters.begin());
+    for(unsigned i = 0; i < quant_depth.size(); i++)
+      if(quant_depth[i] > 0)
+        quant_depth[i]-= 1;
+  }
+  else
+  {
+    prefix[0] = Quant::make_quant(QuantType::EXISTS, free_variables);
+  }
+}
+
+
 void Formula::addFreeVar(Var v)
 {
   assert(!isQuantified(v));
   free_variables.push_back(v);
-  quantify(v, QuantType::EXISTS);
+  quantify(v, 0);
 }
 
-int Formula::quantify(const Var v, const QuantType type)
+int Formula::quantify(const Var v, unsigned depth)
 {
-  if(v >= is_quantified.size())
+  if(v >= quant_depth.size())
   {
-    is_quantified.resize(v + 1, false);
-    is_existential.resize(v + 1, false);
+    quant_depth.resize(v + 1, -1);
+    quant_position.resize(v + 1, 0);
   }
   
-  if(is_quantified[v]) return -1;
+  if(quant_depth[v] != -1) return -1;
   
-  is_quantified[v] = true;
-  is_existential[v] = (type == QuantType::EXISTS);
+  quant_depth[v] = depth;
+  
+  quant_position[v] = position_counters[depth]++;
   
   return 0;
 }
 
 std::ostream& operator<<(std::ostream& out, const Formula& f)
 {
-  out << "exists";
-  for (const Var v : f.free_variables)
-    out << " " << v;
-  out << std::endl;
   for (const Quant* q : f.prefix)
     out << *q << std::endl;
   for (const Clause* c : f.matrix)

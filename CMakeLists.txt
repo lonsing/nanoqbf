@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(miniqbf)
 
 set(CMAKE_CXX_STANDARD 17)
-
+add_compile_options(-Wall)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/AssureOutOfSourceBuilds.txt)
 AssureOutOfSourceBuilds()
