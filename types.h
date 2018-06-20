@@ -28,6 +28,11 @@ inline bool sign(Lit l)
   return l < 0;
 }
 
+inline Lit make_lit(Var v, bool sign)
+{
+  return (Lit)((v ^ -((Lit)sign)) + (Lit)sign);
+}
+
 inline bool lit_order(Lit a, Lit b)
 {
   const Var va = var(a);
@@ -53,6 +58,7 @@ struct Quant
   
   const_var_iterator begin() const {return vars;}
   const_var_iterator end() const {return vars + size;}
+  friend std::ostream& operator<<(std::ostream& out, const Quant& q);
 };
 
 struct Clause
@@ -68,6 +74,7 @@ struct Clause
   const_lit_iterator end_e() const {return lits + size_e;}
   const_lit_iterator begin_a() const {return lits + size_e;}
   const_lit_iterator end_a() const {return lits + size_e + size_a;}
+  friend std::ostream& operator<<(std::ostream& out, const Clause& c);
 };
 
 struct Assignment
@@ -77,12 +84,25 @@ struct Assignment
   char   bits[4];
   
   static Assignment* make_assignment(std::vector<Lit>& base);
+  static Assignment* make_assignment(unsigned int size);
+  static Assignment* copy_assignment(Assignment* original);
   static void destroy_assignment(Assignment* assignment);
-  void set(unsigned int index, bool value);
-  bool get(unsigned int index);
   
-  void update(); // must be called after modifying the object
+  void make_subassignment(Assignment* assignment, unsigned nsize);
+  
+  void set(unsigned int index, bool value);
+  bool get(unsigned int index) const;
+  void update(std::vector<Lit>& base);
+  
+  // must be called after modifying the object
+  inline void rehash()
+  {
+    unsigned int bits_size = (size + 7) / 8;
+    hash_value = std::_Hash_impl::hash(&(size), sizeof size + bits_size);
+  }
+  
   friend bool operator==(const Assignment& lhs, const Assignment& rhs);
+  friend std::ostream& operator<<(std::ostream& out, const Assignment& q);
 };
 
 class Formula
@@ -91,12 +111,12 @@ public:
   Formula();
   ~Formula();
   
-  inline bool isQuantified(Var v)
+  inline bool isQuantified(Var v) const
   {
-    return (v < quant_depth.size()) && (quant_depth[v] != -1);
+    return (v < quant_depth.size()) && (quant_depth[v] >= 0);
   }
   
-  inline bool isExistential(Var v)
+  inline bool isExistential(Var v) const
   {
     assert(isQuantified(v));
     return prefix[quant_depth[v]] == nullptr ||
@@ -113,9 +133,52 @@ public:
     return quant_depth.size() - 1;
   }
   
-  inline unsigned long numClauses()
+  inline unsigned long numClauses() const
   {
     return matrix.size();
+  }
+  
+  inline unsigned long numQuants() const
+  {
+    return prefix.size();
+  }
+  
+  inline const Clause* getClause(unsigned index) const
+  {
+    return matrix[index];
+  }
+  
+  inline const Quant* getQuant(unsigned index) const
+  {
+    return prefix[index];
+  }
+  
+  inline unsigned int numExistential() const
+  {
+    return num_exists;
+  }
+  
+  inline unsigned int numUniversal() const
+  {
+    return num_forall;
+  }
+  
+  inline unsigned int getGlobalPosition(Var v) const
+  {
+    assert(isQuantified(v));
+    return quant_position[v] + position_offset[quant_depth[v]];
+  }
+  
+  inline unsigned int getLocalPosition(Var v) const
+  {
+    assert(isQuantified(v));
+    return quant_position[v];
+  }
+  
+  inline int getDepth(Var v) const
+  {
+    assert(isQuantified(v));
+    return quant_depth[v];
   }
   
   friend std::ostream& operator<<(std::ostream& out, const Formula& f);
@@ -124,11 +187,13 @@ private:
   
   std::vector<Quant*> prefix;
   std::vector<Clause*> matrix;
-  // std::vector<bool> is_quantified;
-  // std::vector<bool> is_existential;
+  unsigned int num_exists;
+  unsigned int num_forall;
+  
   std::vector<int> quant_depth;
   std::vector<unsigned> quant_position;
   std::vector<unsigned> position_counters;
+  std::vector<unsigned> position_offset;
   
   std::vector<Var> free_variables;
   std::vector<Lit> tmp_exists;

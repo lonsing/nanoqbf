@@ -3,11 +3,13 @@
 //
 
 #include "types.h"
+#include "Logger.h"
 #include <algorithm>
 #include <assert.h>
 #include <bits/functional_hash.h>
 #include <cstring>
 #include <new>
+#include <iomanip>
 
 std::ostream& operator<<(std::ostream& out, const Quant& q)
 {
@@ -29,6 +31,16 @@ std::ostream& operator<<(std::ostream& out, const Clause& c)
     out << *l_iter << " ";
   return out;
 }
+
+std::ostream& operator<<(std::ostream& out, const Assignment& a)
+{
+  out << "c Assignment " << std::setw(16) << std::setfill('0')
+      << std::hex << a.hash_value << " : " << std::dec;
+  for (unsigned int i = 0; i < a.size; i++)
+    out << a.get(i);
+  return out;
+}
+
 
 Quant* Quant::make_quant(QuantType qtype, std::vector<Var>& variables)
 {
@@ -86,6 +98,51 @@ Assignment* Assignment::make_assignment(std::vector<Lit>& base)
   Assignment* assignment = (Assignment*)ptr;
   assignment->size = (unsigned int)base.size();
   
+  assignment->update(base);
+  assignment->rehash();
+  
+  return assignment;
+}
+
+Assignment* Assignment::make_assignment(unsigned int size)
+{
+  unsigned int bits_size = (unsigned int)(size + 7) / 8;
+  unsigned int bytes = sizeof(Assignment) - sizeof bits + bits_size;
+  char* ptr = new(std::align_val_t(8)) char[bytes];
+  assert(((size_t)ptr & 0x7UL) == 0x0UL);
+  
+  Assignment* assignment = (Assignment*)ptr;
+  assignment->size = size;
+  
+  return assignment;
+}
+
+void Assignment::make_subassignment(Assignment* assignment, unsigned nsize)
+{
+  assert(nsize <= size);
+  unsigned int nbytes = (unsigned int)(nsize + 7) / 8;
+  assignment->size = nsize;
+  std::memcpy(assignment->bits, bits, nbytes);
+  assignment->bits[nbytes - 1] &= (char)0xff << (nbytes * 8 - nsize);
+  assignment->rehash();
+}
+
+Assignment* Assignment::copy_assignment(Assignment* original)
+{
+  unsigned int bits_size = (unsigned int)(original->size + 7) / 8;
+  unsigned int bytes = sizeof(Assignment) - sizeof bits + bits_size;
+  char* ptr = new(std::align_val_t(8)) char[bytes];
+  assert(((size_t)ptr & 0x7UL) == 0x0UL);
+  
+  std::memcpy(ptr, (char*)original, bytes);
+  
+  return (Assignment*)ptr;
+}
+
+void Assignment::update(std::vector<Lit>& base)
+{
+  assert(base.size() == size);
+  
   auto it = base.begin(); // iter for base
   int shifts = 0;         // shifts left for byte
   int byte_id = 0;        // index of bits field
@@ -100,13 +157,9 @@ Assignment* Assignment::make_assignment(std::vector<Lit>& base)
     }
     if(it == base.end())
       byte <<= shifts;
-    assignment->bits[byte_id] = byte;
+    bits[byte_id] = byte;
     byte_id++;
   }
-  
-  assignment->hash_value = std::_Hash_impl::hash(&(assignment->size), sizeof size + bits_size);
-  
-  return assignment;
 }
 
 void Assignment::destroy_assignment(Assignment* assignment)
@@ -125,7 +178,7 @@ void Assignment::set(unsigned int index, bool value)
   bits[byte_id] ^= (-((char)value) ^ bits[byte_id]) & ((char)0x01 << bit_id);
 }
 
-bool Assignment::get(unsigned int index)
+bool Assignment::get(unsigned int index) const
 {
   assert(index < size);
   
@@ -135,11 +188,7 @@ bool Assignment::get(unsigned int index)
   return (bool)((bits[byte_id] >> bit_id) & 0x01);
 }
 
-void Assignment::update()
-{
-  unsigned int bits_size = (size + 7) / 8;
-  hash_value = std::_Hash_impl::hash(&(size), sizeof size + bits_size);
-}
+
 
 bool operator==(const Assignment& lhs, const Assignment& rhs)
 {
@@ -256,6 +305,20 @@ void Formula::finalise()
   {
     prefix[0] = Quant::make_quant(QuantType::EXISTS, free_variables);
   }
+  
+  position_offset.resize(position_counters.size(), 0);
+  
+  num_exists = 0;
+  num_forall = 0;
+  
+  for(const Quant* q : prefix)
+    if(q->type == QuantType::EXISTS)
+      num_exists += q->size;
+    else
+      num_forall += q->size;
+  
+  for(unsigned qi = 2; qi < prefix.size(); qi++)
+    position_offset[qi] = position_offset[qi - 2] + prefix[qi-2]->size;
 }
 
 

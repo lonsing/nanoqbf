@@ -74,6 +74,21 @@ void test_hash_assignment()
   Assignment::destroy_assignment(b);
 }
 
+void test_make_lit()
+{
+  std::vector<Lit> my_lits;
+  std::random_device dev;
+  std::mt19937 rand(dev());
+  
+  for(int i = 0; i < 100; i++)
+  {
+    Var v = 1 + (unsigned)rand() % 1000;
+    assert(make_lit(v, 0) == (Lit)v);
+    assert(make_lit(v, 1) == -((Lit)v));
+    std::cout << make_lit(v, 0) << " " << make_lit(v, 1) << std::endl;
+  }
+}
+
 
 int main()
 {
@@ -81,5 +96,7 @@ int main()
   
   test_make_assignment();
   test_hash_assignment();
+  test_make_lit();
+  
   return 0;
 }

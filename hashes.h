@@ -13,7 +13,17 @@ namespace std
   {
     size_t operator()(const Assignment& assignment) const;
   };
+  
+  template<> struct hash<Assignment*>
+  {
+    size_t operator()(const Assignment* assignment) const;
+  };
 }
+
+struct CompAssignment
+{
+  bool operator()(const Assignment* lhs, const Assignment* rhs) const;
+};
 
 
 

@@ -19,4 +19,20 @@ void Logger::log(const char* fmt, ...)
   fflush (stdout);
 }
 
+void Logger::log_cl(std::vector<Lit>& clause, const char* fmt, ...)
+{
+  va_list ap;
+  printf ("c LOG ");
+  
+  for(int i = 0; i < clause.size(); i++)
+    printf("%d ", clause[i]);
+  
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+  fputc ('\n', stdout);
+  fflush (stdout);
+}
+
+
 #endif
