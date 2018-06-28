@@ -6,7 +6,7 @@
 #define MINIQBF_READER_H
 
 #include "parseutils.h"
-#include "types.h"
+#include "types/Formula.h"
 
 class Reader
 {

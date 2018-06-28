@@ -24,7 +24,7 @@ void Logger::log_cl(std::vector<Lit>& clause, const char* fmt, ...)
   va_list ap;
   printf ("c LOG ");
   
-  for(int i = 0; i < clause.size(); i++)
+  for(unsigned i = 0; i < clause.size(); i++)
     printf("%d ", clause[i]);
   
   va_start (ap, fmt);

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <zlib.h>
 
-#include "types.h"
+#include "types/Assignment.h"
 #include "Reader.h"
 #include "Logger.h"
 #include "MiniQBF.h"

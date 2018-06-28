@@ -6,7 +6,7 @@
 #define MINIQBF_LOGGER_H
 
 #include <vector>
-#include "types.h"
+#include "types/Assignment.h"
 
 #ifndef NDEBUG
 

@@ -3,7 +3,7 @@
 //
 
 #include "../Logger.h"
-#include "../types.h"
+#include "../types/Assignment.h"
 #include <vector>
 #include <iostream>
 #include <random>

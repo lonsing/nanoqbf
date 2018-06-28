@@ -18,18 +18,18 @@ using namespace std;
 using namespace Glucose;
 
 extern "C" {
-static const char * sig = "glucose 4";
-#include <sys/resource.h>
-#include <sys/time.h>
-static double getime (void) {
-  struct rusage u;
-  double res;
-  if (getrusage (RUSAGE_SELF, &u)) return 0;
-  res = u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;
-  res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec;
-  return res;
+  static const char * sig = "glucose 4";
+  #include <sys/resource.h>
+  #include <sys/time.h>
+  static double getime (void) {
+    struct rusage u;
+    double res;
+    if (getrusage (RUSAGE_SELF, &u)) return 0;
+    res = u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;
+    res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec;
+    return res;
+  }
 }
-};
 
 class IPAsirMiniSAT : public Solver {
   vec<Lit> assumptions, clause;
@@ -80,9 +80,10 @@ public:
   }
   int val (int lit) {
     if (nomodel) return 0;
-    if (nVars() < (lit < 0 ? -lit : lit)) return -lit;
+    if (nVars() < ((lit < 0) ? -lit : lit)) return -lit;
     lbool res = modelValue (import (lit));
-    return (res == l_True) ? lit : -lit;
+    int sign = (res == l_False);
+    return (lit ^ (-sign)) + sign;
   }
   void bump (int l)
   {

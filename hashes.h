@@ -5,7 +5,7 @@
 #ifndef MINIQBF_HASHES_H
 #define MINIQBF_HASHES_H
 
-#include "types.h"
+#include "types/Assignment.h"
 
 namespace std
 {

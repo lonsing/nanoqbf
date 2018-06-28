@@ -3,6 +3,8 @@
 //
 
 #include "MiniQBF.h"
+#include "types/Formula.h"
+
 
 MiniQBF::MiniQBF(const Formula* formula) :
 formula_(formula)
@@ -36,8 +38,8 @@ int MiniQBF::solve()
   
   while(true)
   {
-    LOG("subformuals A: %d", subformula_vars_a_.size());
-    LOG("subformuals B: %d", subformula_vars_b_.size());
+    printf("c subformuals A: %lu\n", subformula_vars_a_.size());
+    printf("c subformuals B: %lu\n", subformula_vars_b_.size());
     
     if(solver_a_.solve() == 20) return 20;
     completeB();
@@ -52,7 +54,7 @@ int MiniQBF::initA()
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
     warmup_solver.addClause(formula_->getClause(ci));
   
-  unsigned warmup_limit = 1;
+  unsigned warmup_limit = 16;
   
   std::vector<Lit> values;
   
@@ -90,14 +92,13 @@ int MiniQBF::initA()
 void MiniQBF::completeA()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numUniversal());
-  std::vector<Lit> values;
   
   unsigned counter = 0;
   
   for(const std::vector<Var>& vars : subformula_vars_b_)
   {
     unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::EXISTS);
-    values.clear();
+    complete_values.clear();
     for(; qi < formula_->numQuants(); qi += 2)
     {
       const Quant* quant = formula_->getQuant(qi);
@@ -105,10 +106,10 @@ void MiniQBF::completeA()
       for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
       {
         Var v_sub = vars[formula_->getDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
-        values.push_back(solver_b_.getValue(v_sub));
+        complete_values.push_back(solver_b_.getValue(v_sub));
       }
     }
-    assignment->update(values);
+    assignment->update(complete_values);
     assignment->rehash();
     
     if(subformula_solutions_b_.find(assignment) != subformula_solutions_b_.end())
@@ -130,14 +131,13 @@ void MiniQBF::completeA()
 void MiniQBF::completeB()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numExistential());
-  std::vector<Lit> values;
   
   unsigned counter = 0;
   
   for(const std::vector<Var>& vars : subformula_vars_a_)
   {
     unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
-    values.clear();
+    complete_values.clear();
     for(; qi < formula_->numQuants(); qi += 2)
     {
       const Quant* quant = formula_->getQuant(qi);
@@ -145,10 +145,10 @@ void MiniQBF::completeB()
       for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
       {
         Var v_sub = vars[formula_->getDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
-        values.push_back(solver_a_.getValue(v_sub));
+        complete_values.push_back(solver_a_.getValue(v_sub));
       }
     }
-    assignment->update(values);
+    assignment->update(complete_values);
     assignment->rehash();
   
     if(subformula_solutions_a_.find(assignment) != subformula_solutions_a_.end())
@@ -175,7 +175,6 @@ void MiniQBF::extendA(Assignment* assignment)
   bool skip = false;
   
   std::vector<Var> subformula_vars;
-  std::vector<Lit> cl;
   Assignment* uni = Assignment::make_assignment(assignment->size);
   unsigned uni_size = 0;
   
@@ -229,18 +228,18 @@ void MiniQBF::extendA(Assignment* assignment)
     const Clause* clause = formula_->getClause(ci);
     bool sat = false;
     for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
-      sat = sat || (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
+      sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
     
     if(sat) continue;
   
-    cl.clear();
+    extend_clause.clear();
     for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
     {
       Var v = var(*l_iter); bool s = sign(*l_iter);
-      cl.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
+      extend_clause.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
     }
     
-    solver_a_.addClause(cl);
+    solver_a_.addClause(extend_clause);
   }
 }
 
@@ -252,7 +251,6 @@ void MiniQBF::extendB(Assignment* assignment)
   bool skip = false;
   
   std::vector<Var> subformula_vars;
-  std::vector<Lit> cl;
   Assignment* exi = Assignment::make_assignment(assignment->size);
   unsigned exi_size = 0;
   
@@ -311,16 +309,16 @@ void MiniQBF::extendB(Assignment* assignment)
     const Clause* clause = formula_->getClause(ci);
     bool sat = false;
     for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
-      sat = sat || (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
+      sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
       
     if(sat) continue;
   
-    cl.clear();
+    extend_clause.clear();
     
     for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
     {
       Var v = var(*l_iter); bool s = sign(*l_iter);
-      cl.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
+      extend_clause.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
     }
     
     Lit x_i = make_lit(solver_b_.reserveVars(1), true);
@@ -329,7 +327,7 @@ void MiniQBF::extendB(Assignment* assignment)
     
     lit_cl[0] = -x_i;
     
-    for(const Lit l : cl)
+    for(const Lit l : extend_clause)
     {
       lit_cl[1] = -l;
       solver_b_.addClause(lit_cl);

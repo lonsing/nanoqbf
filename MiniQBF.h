@@ -8,9 +8,10 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "SatSolver.h"
-#include "types.h"
+#include "types/Assignment.h"
 #include "hashes.h"
 
+class Formula;
 
 class MiniQBF
 {
@@ -35,9 +36,12 @@ private:
   
   int initA();
   void completeA();
-  void extendA(Assignment* assignment);
   void completeB();
+  std::vector<Lit> complete_values;
+  
+  void extendA(Assignment* assignment);
   void extendB(Assignment* assignment);
+  std::vector<Lit> extend_clause;
 };
 
 
