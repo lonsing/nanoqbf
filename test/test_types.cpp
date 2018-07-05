@@ -3,6 +3,7 @@
 //
 
 #include "../Logger.h"
+#include "../types/common.h"
 #include "../types/Assignment.h"
 #include <vector>
 #include <iostream>

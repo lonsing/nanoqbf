@@ -2,8 +2,8 @@
 // Created by vedad on 27/06/18.
 //
 
-#ifndef MINIQBF_COMMON_H
-#define MINIQBF_COMMON_H
+#ifndef NANOQBF_COMMON_H
+#define NANOQBF_COMMON_H
 
 #include <stdlib.h>
 
@@ -45,4 +45,4 @@ enum QuantType
 };
 
 
-#endif //MINIQBF_COMMON_H
+#endif //NANOQBF_COMMON_H

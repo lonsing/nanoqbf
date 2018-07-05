@@ -2,8 +2,8 @@
 // Created by vedad on 07/10/17.
 //
 
-#ifndef MINIQBF_ASSIGNMENT_H
-#define MINIQBF_ASSIGNMENT_H
+#ifndef NANOQBF_ASSIGNMENT_H
+#define NANOQBF_ASSIGNMENT_H
 
 #include <vector>
 #include <iostream>
@@ -41,4 +41,4 @@ inline void Assignment::rehash()
 }
 
 
-#endif // MINIQBF_ASSIGNMENT_H
+#endif // NANOQBF_ASSIGNMENT_H

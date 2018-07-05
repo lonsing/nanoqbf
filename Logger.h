@@ -2,8 +2,8 @@
 // Created by vedad on 17/06/18.
 //
 
-#ifndef MINIQBF_LOGGER_H
-#define MINIQBF_LOGGER_H
+#ifndef NANOQBF_LOGGER_H
+#define NANOQBF_LOGGER_H
 
 #include <vector>
 #include "types/Assignment.h"
@@ -31,4 +31,4 @@ do { \
 #define LOG_CL(CL, FMT, ARGS...) do { } while (0)
 #endif
 
-#endif //MINIQBF_LOGGER_H
+#endif //NANOQBF_LOGGER_H

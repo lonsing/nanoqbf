@@ -2,8 +2,8 @@
 // Created by vedad on 18/06/18.
 //
 
-#ifndef MINIQBF_SATSOLVER_H
-#define MINIQBF_SATSOLVER_H
+#ifndef NANOQBF_SATSOLVER_H
+#define NANOQBF_SATSOLVER_H
 
 #include "ipasir.h"
 #include "types/Assignment.h"
@@ -55,4 +55,4 @@ inline Var SatSolver::reserveVars(unsigned num)
   return res;
 }
 
-#endif //MINIQBF_SATSOLVER_H
+#endif //NANOQBF_SATSOLVER_H

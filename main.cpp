@@ -4,7 +4,7 @@
 #include "types/Assignment.h"
 #include "Reader.h"
 #include "Logger.h"
-#include "MiniQBF.h"
+#include "NanoQBF.h"
 
 int main(int argc, char* argv[])
 {
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
   
   // std::cout << formula << std::endl;
   
-  MiniQBF solver(&formula);
+  NanoQBF solver(&formula);
   
   return solver.solve();
 }

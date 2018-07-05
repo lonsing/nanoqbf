@@ -2,8 +2,8 @@
 // Created by vedad on 27/06/18.
 //
 
-#ifndef MINIQBF_QUANT_H
-#define MINIQBF_QUANT_H
+#ifndef NANOQBF_QUANT_H
+#define NANOQBF_QUANT_H
 
 #include <iosfwd>
 #include <vector>
@@ -25,4 +25,4 @@ struct Quant
 };
 
 
-#endif //MINIQBF_QUANT_H
+#endif //NANOQBF_QUANT_H

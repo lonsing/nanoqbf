@@ -2,8 +2,8 @@
 // Created by vedad on 07/10/17.
 //
 
-#ifndef MINIQBF_READER_H
-#define MINIQBF_READER_H
+#ifndef NANOQBF_READER_H
+#define NANOQBF_READER_H
 
 #include "parseutils.h"
 #include "types/Formula.h"
@@ -30,4 +30,4 @@ public:
 };
 
 
-#endif // MINIQBF_READER_H
+#endif // NANOQBF_READER_H

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(miniqbf)
+project(nanoqbf)
 
 set(CMAKE_CXX_STANDARD 17)
 add_compile_options(-Wall -Wextra -g)
@@ -7,17 +7,18 @@ add_compile_options(-Wall -Wextra -g)
 include(${CMAKE_CURRENT_SOURCE_DIR}/AssureOutOfSourceBuilds.txt)
 AssureOutOfSourceBuilds()
 
-set(SOLVER_FILES main.cpp MiniQBF.cpp MiniQBF.h)
-set(COMMON_FILES parseutils.h Reader.cpp Reader.h types/Assignment.cpp types/Assignment.h Logger.cpp Logger.h hashes.cpp hashes.h ipasir.h SatSolver.h types/Formula.cpp types/Formula.h types/common.h types/Quant.cpp types/Quant.h types/Clause.cpp types/Clause.h)
-set(IPASIR_FILE ipasir-glucose4.cpp)
+set(SOLVER_FILES main.cpp NanoQBF.cpp NanoQBF.h)
+set(TYPE_FILES types/Assignment.cpp types/Assignment.h types/Formula.cpp types/Formula.h types/common.h types/Quant.cpp types/Quant.h types/Clause.cpp types/Clause.h)
+set(COMMON_FILES parseutils.h Reader.cpp Reader.h Logger.cpp Logger.h hashes.cpp hashes.h)
+set(SAT_FILES ipasir-glucose4.cpp ipasir.h SatSolver.h)
 
-add_executable(miniqbf ${SOLVER_FILES} ${COMMON_FILES} ${IPASIR_FILE})
-add_executable(test_types ${COMMON_FILES} test/test_types.cpp)
+add_executable(nanoqbf ${SOLVER_FILES} ${TYPE_FILES} ${COMMON_FILES} ${SAT_FILES})
+add_executable(test_types Logger.cpp Logger.h ${TYPE_FILES} test/test_types.cpp)
 
 find_package( ZLIB REQUIRED )
 if ( ZLIB_FOUND )
     include_directories( ${ZLIB_INCLUDE_DIRS} )
-    target_link_libraries( miniqbf ${ZLIB_LIBRARIES} )
+    target_link_libraries( nanoqbf ${ZLIB_LIBRARIES} )
     target_link_libraries( test_types ${ZLIB_LIBRARIES} )
 endif( ZLIB_FOUND )
 
@@ -37,7 +38,7 @@ ExternalProject_Add(glucose
         INSTALL_COMMAND ""
         )
 
-add_dependencies(miniqbf glucose)
+add_dependencies(nanoqbf glucose)
 
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/glucose/src/glucose/glucose-syrup-4.1/")
 
@@ -48,6 +49,6 @@ set_target_properties(libglucose PROPERTIES
         )
 
 add_dependencies(libglucose glucose)
-add_dependencies(miniqbf libglucose)
+add_dependencies(nanoqbf libglucose)
 
-target_link_libraries(miniqbf libglucose)
+target_link_libraries(nanoqbf libglucose)

@@ -2,8 +2,8 @@
 // Created by vedad on 18/06/18.
 //
 
-#ifndef MINIQBF_HASHES_H
-#define MINIQBF_HASHES_H
+#ifndef NANOQBF_HASHES_H
+#define NANOQBF_HASHES_H
 
 #include "types/Assignment.h"
 
@@ -27,4 +27,4 @@ struct CompAssignment
 
 
 
-#endif //MINIQBF_HASHES_H
+#endif //NANOQBF_HASHES_H

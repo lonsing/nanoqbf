@@ -2,8 +2,8 @@
 // Created by vedad on 16/06/18.
 //
 
-#ifndef MINIQBF_MINIQBF_H
-#define MINIQBF_MINIQBF_H
+#ifndef NANOQBF_NANOQBF_H
+#define NANOQBF_NANOQBF_H
 
 #include <unordered_map>
 #include <unordered_set>
@@ -13,11 +13,11 @@
 
 class Formula;
 
-class MiniQBF
+class NanoQBF
 {
 public:
-  MiniQBF(const Formula* formula);
-  ~MiniQBF();
+  NanoQBF(const Formula* formula);
+  ~NanoQBF();
   int solve();
 private:
   const Formula* formula_;
@@ -45,4 +45,4 @@ private:
 };
 
 
-#endif // MINIQBF_MINIQBF_H
+#endif // NANOQBF_NANOQBF_H

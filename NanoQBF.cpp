@@ -2,11 +2,11 @@
 // Created by vedad on 16/06/18.
 //
 
-#include "MiniQBF.h"
+#include "NanoQBF.h"
 #include "types/Formula.h"
 
 
-MiniQBF::MiniQBF(const Formula* formula) :
+NanoQBF::NanoQBF(const Formula* formula) :
 formula_(formula)
 {
   const Quant* qfirst = formula_->getQuant(0);
@@ -16,7 +16,7 @@ formula_(formula)
     solver_b_.reserveVars(qfirst->size);
 }
 
-MiniQBF::~MiniQBF()
+NanoQBF::~NanoQBF()
 {
   for(const auto & a : subformula_solutions_a_)
     Assignment::destroy_assignment(a);
@@ -29,7 +29,7 @@ MiniQBF::~MiniQBF()
     Assignment::destroy_assignment(av.first);
 }
 
-int MiniQBF::solve()
+int NanoQBF::solve()
 {
   int res = initA();
   if(res != 0) return res;
@@ -48,7 +48,7 @@ int MiniQBF::solve()
   }
 }
 
-int MiniQBF::initA()
+int NanoQBF::initA()
 {
   SatSolver warmup_solver;
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
@@ -89,7 +89,7 @@ int MiniQBF::initA()
   return 0;
 }
 
-void MiniQBF::completeA()
+void NanoQBF::completeA()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numUniversal());
   
@@ -128,7 +128,7 @@ void MiniQBF::completeA()
 }
 
 
-void MiniQBF::completeB()
+void NanoQBF::completeB()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numExistential());
   
@@ -167,7 +167,7 @@ void MiniQBF::completeB()
 }
 
 
-void MiniQBF::extendA(Assignment* assignment)
+void NanoQBF::extendA(Assignment* assignment)
 {
   // LOG("extendA start:\n");
   
@@ -243,7 +243,7 @@ void MiniQBF::extendA(Assignment* assignment)
   }
 }
 
-void MiniQBF::extendB(Assignment* assignment)
+void NanoQBF::extendB(Assignment* assignment)
 {
   // LOG("extendB start:\n");
   

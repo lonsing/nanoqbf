@@ -2,8 +2,8 @@
 // Created by vedad on 27/06/18.
 //
 
-#ifndef MINIQBF_FORMULA_H
-#define MINIQBF_FORMULA_H
+#ifndef NANOQBF_FORMULA_H
+#define NANOQBF_FORMULA_H
 
 #include "common.h"
 #include "Quant.h"
@@ -127,4 +127,4 @@ inline int Formula::getDepth(Var v) const
   return quant_depth[v];
 }
 
-#endif //MINIQBF_FORMULA_H
+#endif //NANOQBF_FORMULA_H
