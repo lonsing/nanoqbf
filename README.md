@@ -5,7 +5,7 @@ which does not use recursion.
 To build the project you will need:
 - CMake 3.10
 - zlib
-- a C++17 compliant compiler
+- a C++11 compliant compiler
 
 Building NanoQBF in Release mode:
 ```
