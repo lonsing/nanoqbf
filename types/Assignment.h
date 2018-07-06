@@ -17,8 +17,8 @@ struct Assignment
   unsigned int size;
   char   bits[4];
   
-  static Assignment* make_assignment(std::vector<Lit>& base);
   static Assignment* make_assignment(unsigned int size);
+  static Assignment* make_assignment(std::vector<Lit>& base);
   static Assignment* copy_assignment(Assignment* original);
   static void destroy_assignment(Assignment* assignment);
   

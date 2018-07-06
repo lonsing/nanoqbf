@@ -9,7 +9,8 @@
 Clause* Clause::make_clause(std::vector<Lit>& exi, std::vector<Lit>& uni)
 {
   unsigned int bytes = sizeof (Clause) + (exi.size() + uni.size() - 2) * sizeof (Lit);
-  char* ptr = new(std::align_val_t(4)) char[bytes];
+  assert(bytes % sizeof(int) == 0);
+  int* ptr = new int[bytes / sizeof(int)];
   assert(((size_t)ptr & 0x3UL) == 0x0UL);
   Clause* clause = (Clause*) ptr;
   
@@ -27,7 +28,7 @@ Clause* Clause::make_clause(std::vector<Lit>& exi, std::vector<Lit>& uni)
 
 void Clause::destroy_clause(Clause* clause)
 {
-  ::operator delete[]((char*)clause, std::align_val_t(4));
+  delete[] (int*)clause;
 }
 
 std::ostream& operator<<(std::ostream& out, const Clause& c)

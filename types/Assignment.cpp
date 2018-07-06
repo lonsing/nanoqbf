@@ -12,27 +12,13 @@
 #include <new>
 #include <iomanip>
 
-Assignment* Assignment::make_assignment(std::vector<Lit>& base)
-{
-  unsigned int bits_size = (unsigned int)(base.size() + 7) / 8;
-  unsigned int bytes = sizeof(Assignment) - sizeof bits + bits_size;
-  char* ptr = new(std::align_val_t(8)) char[bytes];
-  assert(((size_t)ptr & 0x7UL) == 0x0UL);
-  
-  Assignment* assignment = (Assignment*)ptr;
-  assignment->size = (unsigned int)base.size();
-  
-  assignment->update(base);
-  assignment->rehash();
-  
-  return assignment;
-}
 
 Assignment* Assignment::make_assignment(unsigned int size)
 {
-  unsigned int bits_size = (unsigned int)(size + 7) / 8;
+  unsigned int bits_size = (size + 7) / 8;
   unsigned int bytes = sizeof(Assignment) - sizeof bits + bits_size;
-  char* ptr = new(std::align_val_t(8)) char[bytes];
+  unsigned int qwords = (bytes + sizeof(size_t) - 1) / sizeof(size_t);
+  size_t* ptr = new size_t[qwords];
   assert(((size_t)ptr & 0x7UL) == 0x0UL);
   
   Assignment* assignment = (Assignment*)ptr;
@@ -41,10 +27,20 @@ Assignment* Assignment::make_assignment(unsigned int size)
   return assignment;
 }
 
+Assignment* Assignment::make_assignment(std::vector<Lit>& base)
+{
+  Assignment* assignment = Assignment::make_assignment((unsigned int)base.size());
+  
+  assignment->update(base);
+  assignment->rehash();
+  
+  return assignment;
+}
+
 void Assignment::make_subassignment(Assignment* assignment, unsigned nsize)
 {
   assert(nsize <= size);
-  unsigned int nbytes = (unsigned int)(nsize + 7) / 8;
+  unsigned int nbytes = (nsize + 7) / 8;
   assignment->size = nsize;
   std::memcpy(assignment->bits, bits, nbytes);
   assignment->bits[nbytes - 1] &= (uint8_t)0xff << (nbytes * 8 - nsize);
@@ -53,14 +49,11 @@ void Assignment::make_subassignment(Assignment* assignment, unsigned nsize)
 
 Assignment* Assignment::copy_assignment(Assignment* original)
 {
-  unsigned int bits_size = (unsigned int)(original->size + 7) / 8;
-  unsigned int bytes = sizeof(Assignment) - sizeof bits + bits_size;
-  char* ptr = new(std::align_val_t(8)) char[bytes];
-  assert(((size_t)ptr & 0x7UL) == 0x0UL);
+  Assignment* res = Assignment::make_assignment(original->size);
+  unsigned int bytes = sizeof(Assignment) - sizeof bits + (original->size + 7) / 8;
+  std::memcpy(res, (char*)original, bytes);
   
-  std::memcpy(ptr, (char*)original, bytes);
-  
-  return (Assignment*)ptr;
+  return res;
 }
 
 void Assignment::update(std::vector<Lit>& base)
@@ -88,7 +81,7 @@ void Assignment::update(std::vector<Lit>& base)
 
 void Assignment::destroy_assignment(Assignment* assignment)
 {
-  ::operator delete[]((char*)assignment, std::align_val_t(8));
+  delete[] (size_t*)assignment;
 }
 
 void Assignment::set(unsigned int index, bool value)

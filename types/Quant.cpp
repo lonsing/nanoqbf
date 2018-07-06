@@ -9,7 +9,8 @@
 Quant* Quant::make_quant(QuantType qtype, std::vector<Var>& variables)
 {
   size_t bytes = sizeof (Quant) + (variables.size() - 2) * sizeof (Var);
-  char* ptr = new(std::align_val_t(4)) char[bytes];
+  assert(bytes % sizeof(unsigned int) == 0);
+  unsigned int* ptr = new unsigned int[bytes / sizeof(unsigned int)];
   
   assert(((size_t)ptr & 0x3UL) == 0x0UL);
   Quant* quant = (Quant*) ptr;
@@ -25,7 +26,7 @@ Quant* Quant::make_quant(QuantType qtype, std::vector<Var>& variables)
 
 void Quant::destroy_quant(Quant* quant)
 {
-  ::operator delete[]((char*)quant, std::align_val_t(4));
+  delete[] (unsigned int*)quant;
 }
 
 std::ostream& operator<<(std::ostream& out, const Quant& q)
