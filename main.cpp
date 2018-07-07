@@ -1,25 +1,22 @@
 #include <iostream>
 #include <zlib.h>
 
-#include "types/Assignment.h"
+#include "NanoQBF.h"
 #include "Reader.h"
 #include "Logger.h"
-#include "NanoQBF.h"
+#include "Options.h"
 
-int main(int argc, char* argv[])
+int main(int argc, const char* argv[])
 {
-  if (argc < 2)
-  {
-    printf("Please specify an input file");
+  const Options* options = Options::make_options(argc, argv);
+  if (options == nullptr)
     return -1;
-  }
   
-  const char* filename = argv[argc - 1];
-  gzFile file = gzopen(filename, "rb");
+  gzFile file = gzopen(options->file_name.c_str(), "rb");
   
   if (file == Z_NULL)
   {
-    printf("Could not open file: %s", filename);
+    printf("Could not open file: %s", options->file_name.c_str());
     return -2;
   }
   
@@ -28,10 +25,7 @@ int main(int argc, char* argv[])
   
   if(reader.readQBF(formula)) return -3;
   gzclose(file);
-  
-  // std::cout << formula << std::endl;
-  
-  NanoQBF solver(&formula);
+  NanoQBF solver(&formula, options);
   
   return solver.solve();
 }

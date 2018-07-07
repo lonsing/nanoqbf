@@ -9,7 +9,7 @@ AssureOutOfSourceBuilds()
 
 set(SOLVER_FILES main.cpp NanoQBF.cpp NanoQBF.h)
 set(TYPE_FILES types/Assignment.cpp types/Assignment.h types/Formula.cpp types/Formula.h types/common.h types/Quant.cpp types/Quant.h types/Clause.cpp types/Clause.h)
-set(COMMON_FILES parseutils.h Reader.cpp Reader.h Logger.cpp Logger.h hashes.cpp hashes.h)
+set(COMMON_FILES parseutils.h Reader.cpp Reader.h Logger.cpp Logger.h hashes.cpp hashes.h Options.cpp Options.h auxutils.h)
 set(SAT_FILES ipasir-glucose4.cpp ipasir.h SatSolver.h)
 
 add_executable(nanoqbf ${SOLVER_FILES} ${TYPE_FILES} ${COMMON_FILES} ${SAT_FILES})
@@ -40,8 +40,22 @@ ExternalProject_Add(glucose
 
 add_dependencies(nanoqbf glucose)
 
-file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/glucose/src/glucose/glucose-syrup-4.1/")
+ExternalProject_Add(cxxopts
+        GIT_REPOSITORY "https://github.com/jarro2783/cxxopts"
+        GIT_TAG "0fe1dc892bcbef48b3911510209c7033f31ce05e"
+        PREFIX ${CMAKE_CURRENT_BINARY_DIR}/cxxopts
+        BUILD_COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/include/ &&
+        cp ${CMAKE_CURRENT_BINARY_DIR}/cxxopts/src/cxxopts/include/cxxopts.hpp ${CMAKE_CURRENT_BINARY_DIR}/include/cxxopts.h
+        UPDATE_COMMAND ""
+        PATCH_COMMAND ""
+        INSTALL_COMMAND ""
+        )
 
+add_dependencies(nanoqbf cxxopts)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/)
+
+
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/glucose/src/glucose/glucose-syrup-4.1/")
 add_library(libglucose STATIC IMPORTED)
 set_target_properties(libglucose PROPERTIES
         IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/lib/libglucose.a"

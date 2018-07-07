@@ -16,6 +16,7 @@ class SatSolver
 public:
   inline SatSolver() : solver_(ipasir_init()), num_vars(0) { }
   inline ~SatSolver() { ipasir_release(solver_); }
+  inline void reset();
   inline int solve() { return ipasir_solve(solver_); }
   inline void addClause(std::vector<Lit>& clause);
   inline void addClause(const Clause* clause);
@@ -26,6 +27,13 @@ private:
   void* solver_;
   unsigned num_vars;
 };
+
+inline void SatSolver::reset()
+{
+  ipasir_release(solver_);
+  solver_ = ipasir_init();
+  num_vars = 0;
+}
 
 inline void SatSolver::addClause(std::vector<Lit>& clause)
 {

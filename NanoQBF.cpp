@@ -4,10 +4,12 @@
 
 #include "NanoQBF.h"
 #include "types/Formula.h"
+#include "auxutils.h"
 
-
-NanoQBF::NanoQBF(const Formula* formula) :
-formula_(formula)
+NanoQBF::NanoQBF(const Formula* formula, const Options* options) :
+formula_(formula),
+options_(options),
+iteration_(0)
 {
   const Quant* qfirst = formula_->getQuant(0);
   if(qfirst->type == QuantType::EXISTS)
@@ -27,6 +29,7 @@ NanoQBF::~NanoQBF()
     Assignment::destroy_assignment(av.first);
   for(const auto & av : vars_b_)
     Assignment::destroy_assignment(av.first);
+  delete options_;
 }
 
 int NanoQBF::solve()
@@ -36,15 +39,51 @@ int NanoQBF::solve()
   
   LOG("Entering main loop");
   
+  double time_solve_a = 0;
+  double time_solve_b = 0;
+  double time_complete_a = 0;
+  double time_complete_b = 0;
+  
+  double time_tmp = 0;
+  double time_0 = read_cpu_time();
   while(true)
   {
-    printf("c subformuals A: %lu\n", subformula_vars_a_.size());
-    printf("c subformuals B: %lu\n", subformula_vars_b_.size());
+    iteration_++;
+    if(iteration_ % 20 == 0)
+      printf("c Iteration %d\n", iteration_);
     
+    if(read_cpu_time() - time_0 > options_->time_limit)
+    {
+      printf("c NanoQBF ran out of time, retrning unknown\n");
+      return 0;
+    }
+    
+    LOG("c subformuals A:   %lu\n", subformula_vars_a_.size());
+    LOG("c subformuals B:   %lu\n", subformula_vars_b_.size());
+    LOG("c solve time A:    %f\n", time_solve_a);
+    LOG("c solve time B:    %f\n", time_solve_b);
+    LOG("c complete time A: %f\n", time_complete_a);
+    LOG("c complete time B: %f\n", time_complete_b);
+  
+    time_tmp = read_cpu_time();
     if(solver_a_.solve() == 20) return 20;
+    time_solve_a += read_cpu_time() - time_tmp;
+    
+    time_tmp = read_cpu_time();
     completeB();
+    time_complete_b += read_cpu_time() - time_tmp;
+    
+    time_tmp = read_cpu_time();
     if(solver_b_.solve() == 20) return 10;
+    time_solve_b += read_cpu_time() - time_tmp;
+  
+    if(options_->pruning == Options::PruningMode::PERIODIC &&
+       iteration_ % options_->pruning_period == 0)
+      pruneA();
+    
+    time_tmp = read_cpu_time();
     completeA();
+    time_complete_a += read_cpu_time() - time_tmp;
   }
 }
 
@@ -54,11 +93,9 @@ int NanoQBF::initA()
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
     warmup_solver.addClause(formula_->getClause(ci));
   
-  unsigned warmup_limit = 16;
-  
   std::vector<Lit> values;
   
-  for(unsigned wi = 0; wi < warmup_limit; wi++)
+  for(unsigned wi = 0; wi < options_->warmup_samples; wi++)
   {
     // the problem is unsatisfiable or we are warmed up
     int res = warmup_solver.solve();
@@ -88,6 +125,19 @@ int NanoQBF::initA()
   }
   return 0;
 }
+
+
+void NanoQBF::pruneA()
+{
+  printf("c Pruning formula A\n");
+  solver_a_.reset();
+  for(const auto & av : vars_a_)
+    Assignment::destroy_assignment(av.first);
+  vars_a_.clear();
+  subformula_vars_a_.clear();
+  subformula_solutions_b_.clear();
+}
+
 
 void NanoQBF::completeA()
 {
