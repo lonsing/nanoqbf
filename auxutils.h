@@ -21,7 +21,7 @@ static inline double read_cpu_time()
 // taken from
 // https://stackoverflow.com/questions/669438/how-to-get-memory-usage-at-run-time-in-c
 //
-unsigned long read_mem_usage()
+static inline unsigned long read_mem_usage()
 {
   using std::ios_base;
   using std::ifstream;
@@ -56,7 +56,7 @@ unsigned long read_mem_usage()
   long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
   // vm_usage     = vsize / 1024.0;
   resident_set = rss * page_size_kb;
-  return (unsigned long)(resident_set);
+  return (unsigned long)(resident_set) / 1024;
 }
 
 #endif //NANOQBF_AUXUTILS_H

@@ -60,16 +60,18 @@ int NanoQBF::solve()
       return 0;
     }
     
-    LOG("c subformuals A:   %lu\n", subformula_vars_a_.size());
-    LOG("c subformuals B:   %lu\n", subformula_vars_b_.size());
-    LOG("c solve time A:    %f\n", time_solve_a);
-    LOG("c solve time B:    %f\n", time_solve_b);
-    LOG("c complete time A: %f\n", time_complete_a);
-    LOG("c complete time B: %f\n", time_complete_b);
+    LOG("c subformuals A:   %lu", subformula_vars_a_.size());
+    LOG("c subformuals B:   %lu", subformula_vars_b_.size());
+    LOG("c solve time A:    %f", time_solve_a);
+    LOG("c solve time B:    %f", time_solve_b);
+    LOG("c complete time A: %f", time_complete_a);
+    LOG("c complete time B: %f", time_complete_b);
   
     time_tmp = read_cpu_time();
     if(solver_a_.solve() == 20) return 20;
     time_solve_a += read_cpu_time() - time_tmp;
+  
+    pruneCheckB();
     
     time_tmp = read_cpu_time();
     completeB();
@@ -78,10 +80,8 @@ int NanoQBF::solve()
     time_tmp = read_cpu_time();
     if(solver_b_.solve() == 20) return 10;
     time_solve_b += read_cpu_time() - time_tmp;
-  
-    if(options_->pruning == Options::PruningMode::PERIODIC &&
-       iteration_ % options_->pruning_period == 0)
-      pruneA();
+    
+    pruneCheckA();
     
     time_tmp = read_cpu_time();
     completeA();
@@ -126,18 +126,6 @@ int NanoQBF::initA()
     warmup_solver.addClause(values);
   }
   return 0;
-}
-
-
-void NanoQBF::pruneA()
-{
-  printf("c Pruning formula A\n");
-  solver_a_.reset();
-  for(const auto & av : vars_a_)
-    Assignment::destroy_assignment(av.first);
-  vars_a_.clear();
-  subformula_vars_a_.clear();
-  subformula_solutions_b_.clear();
 }
 
 
