@@ -11,6 +11,8 @@ formula_(formula),
 options_(options),
 iteration_(0)
 {
+  if(formula_->numQuants() == 0) return;
+  
   const Quant* qfirst = formula_->getQuant(0);
   if(qfirst->type == QuantType::EXISTS)
     solver_a_.reserveVars(qfirst->size);
