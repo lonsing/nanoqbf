@@ -21,6 +21,8 @@ Assignment* Assignment::make_assignment(unsigned int size)
   size_t* ptr = new size_t[qwords];
   assert(((size_t)ptr & 0x7UL) == 0x0UL);
   
+  // for (size_t* pi = ptr; pi < ptr + qwords; pi++) *pi = 0;
+  
   Assignment* assignment = (Assignment*)ptr;
   assignment->size = size;
   

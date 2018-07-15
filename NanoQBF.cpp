@@ -115,16 +115,71 @@ int NanoQBF::initA()
       for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
         values.push_back(warmup_solver.getValue(*v_iter));
     }
-    Assignment* assignemnt = Assignment::make_assignment(values);
-    std::cout << *assignemnt << std::endl;
-    subformula_solutions_b_.insert(assignemnt);
-    extendA(assignemnt);
+    Assignment* assignment = Assignment::make_assignment(values);
+    std::cout << *assignment << std::endl;
+    subformula_solutions_b_.insert(assignment);
+    extendA(assignment);
     
     for(unsigned vi = 0; vi < values.size(); vi++)
       values[vi] = -values[vi];
     
     warmup_solver.addClause(values);
   }
+  
+  for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
+  {
+    const Quant* quant = formula_->getQuant(qi);
+    if(quant->type == QuantType::EXISTS) continue;
+    Assignment* assignment_n = Assignment::make_assignment(formula_->numUniversal());
+    Assignment* assignment_p = Assignment::make_assignment(formula_->numUniversal());
+    
+    unsigned pos = 0;
+    for(unsigned qni = 0; qni < formula_->numQuants(); qni++)
+    {
+      const Quant* quant_i = formula_->getQuant(qni);
+      if(quant_i->type == QuantType::EXISTS) continue;
+      bool valn = (qi == qni);
+      for(unsigned vi = 0; vi < quant_i->size; vi++)
+      {
+        assignment_n->set(pos + vi, valn);
+        assignment_p->set(pos + vi, !valn);
+      }
+      pos += quant_i->size;
+    }
+  
+    subformula_solutions_b_.insert(assignment_n);
+    extendA(assignment_n);
+    subformula_solutions_b_.insert(assignment_p);
+    extendA(assignment_p);
+  }
+  
+  for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
+  {
+    const Quant* quant = formula_->getQuant(qi);
+    if(quant->type == QuantType::FORALL) continue;
+    Assignment* assignment_n = Assignment::make_assignment(formula_->numExistential());
+    Assignment* assignment_p = Assignment::make_assignment(formula_->numExistential());
+    
+    unsigned pos = 0;
+    for(unsigned qni = 0; qni < formula_->numQuants(); qni++)
+    {
+      const Quant* quant_i = formula_->getQuant(qni);
+      if(quant_i->type == QuantType::FORALL) continue;
+      bool valn = (qi == qni);
+      for(unsigned vi = 0; vi < quant_i->size; vi++)
+      {
+        assignment_n->set(pos + vi, valn);
+        assignment_p->set(pos + vi, !valn);
+      }
+      pos += quant_i->size;
+    }
+    
+    subformula_solutions_a_.insert(assignment_n);
+    extendB(assignment_n);
+    subformula_solutions_a_.insert(assignment_p);
+    extendB(assignment_p);
+  }
+  
   return 0;
 }
 
