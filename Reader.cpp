@@ -19,9 +19,9 @@ int Reader::readQBF(Formula& f)
   if (readMatrix(f)) return -3;
   f.finalise();
   if (f.numVars() != num_vars)
-    printf("Warning: Variable count mismatch");
+    printf("c Warning: Variable count mismatch\n");
   if (f.numClauses() != num_clauses)
-    printf("Warning: Clause count mismatch");
+    printf("c Warning: Clause count mismatch\n");
   return 0;
 }
 

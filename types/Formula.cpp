@@ -104,7 +104,7 @@ int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
 
 void Formula::finalise()
 {
-  if(free_variables.empty())
+  if(free_variables.empty() && prefix.size() > 1)
   {
     prefix.erase(prefix.begin());
     position_counters.erase(position_counters.begin());
