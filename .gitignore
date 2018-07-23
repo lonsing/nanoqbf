@@ -3,6 +3,7 @@ cmake-build-debug/
 release/
 debug/
 build/
+doc/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
