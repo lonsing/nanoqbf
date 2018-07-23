@@ -13,9 +13,8 @@ mkdir release && cd release;
 cmake -DCMAKE_BUILD_TYPE=Release .. && make;
 ```
 
-The build process will automatically download the Glucose 
+The build process will automatically download the MapleSAT 
 SAT solver and build it. You should only get warnings while 
-building Glucose, and not the main NanoQBF source files.
-Feel free to file an issue if a a newer compiler breaks the
-build process, as Glucose is already making problems and could
-be replaced with a cleaner solver in the future.
+building MapleSAT, and not the main NanoQBF source files.
+Feel free to file an issue if a newer compiler breaks the
+build process.
