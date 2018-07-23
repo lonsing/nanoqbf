@@ -11,6 +11,7 @@
 #include <fstream>
 #include <unistd.h>
 
+/// Reads CPU time
 static inline double read_cpu_time()
 {
   struct rusage ru;
@@ -18,9 +19,10 @@ static inline double read_cpu_time()
   return (double) ru.ru_utime.tv_sec + (double) ru.ru_utime.tv_usec / 1000000;
 }
 
-// taken from
-// https://stackoverflow.com/questions/669438/how-to-get-memory-usage-at-run-time-in-c
-//
+/// Reads memory usage
+/** Taken from StackOverflow
+ * @url https://stackoverflow.com/questions/669438/how-to-get-memory-usage-at-run-time-in-c
+ */
 static inline unsigned long read_mem_usage()
 {
   using std::ios_base;

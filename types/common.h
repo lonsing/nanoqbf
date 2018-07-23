@@ -15,21 +15,25 @@ typedef unsigned        Var;
 typedef unsigned*       var_iterator;
 typedef const unsigned* const_var_iterator;
 
+/// Returns variable corresponding to literal \a l
 inline Var var(Lit l)
 {
   return std::abs(l);
 }
 
+/// Returns true if literal \a l is negated
 inline bool sign(Lit l)
 {
   return l < 0;
 }
 
+/// Constructs literal from variable \a v and \a sign
 inline Lit make_lit(Var v, bool sign)
 {
   return (Lit)((v ^ -((Lit)sign)) + (Lit)sign);
 }
 
+/// Defines a custom order relation for literals
 inline bool lit_order(Lit a, Lit b)
 {
   const Var va = var(a);
@@ -37,6 +41,7 @@ inline bool lit_order(Lit a, Lit b)
   return va < vb || (va == vb && a < b);
 }
 
+/// Enum representing quantifier types in QBF
 enum QuantType
 {
   NONE,

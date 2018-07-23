@@ -11,27 +11,45 @@
 
 #include "common.h"
 
+/// Structure representing an assignment of truth values to variables
 struct Assignment
 {
-  size_t hash_value;
-  unsigned int size;
-  char   bits[4];
+  size_t hash_value; ///< Hash value used for unordered data structures
+  unsigned int size; ///< Valid size of #bits expressed in bits
+  char   bits[4];    ///< Vector of bits containing the assigned Boolean values
   
+  /// Constructs an empty Assignment of given size in memory
   static Assignment* make_assignment(unsigned int size);
+  
+  /// Constructs an Assignment from a given literal vector
   static Assignment* make_assignment(std::vector<Lit>& base);
+  
+  /// Constructs a copy of Assignment \a original
   static Assignment* copy_assignment(Assignment* original);
+  
+  /// Destroys an Assignment and deallocates memory
   static void destroy_assignment(Assignment* assignment);
   
+  /// Resizes Assignment \a assignment to size \a nsize, without deallocating
   void make_subassignment(Assignment* assignment, unsigned nsize);
   
+  /// Sets bit at \a index to \a value
   void set(unsigned int index, bool value);
+  
+  /// Gets value of bit at \a index
   bool get(unsigned int index) const;
+  
+  /// Updates all assigned bits according to base, without rehashing
   void update(std::vector<Lit>& base);
-  // must be called after modifying the object
+  
+  /// Rehashes the object, must be called after modifying the object
   inline void rehash();
   
+  /// Compares two Assignment objects
   friend bool operator==(const Assignment& lhs, const Assignment& rhs);
-  friend std::ostream& operator<<(std::ostream& out, const Assignment& q);
+  
+  /// Prints Assignment \a a to output stream \a out
+  friend std::ostream& operator<<(std::ostream& out, const Assignment& a);
 };
 
 inline void Assignment::rehash()

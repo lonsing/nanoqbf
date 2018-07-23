@@ -11,21 +11,37 @@
 #include "types/Clause.h"
 #include <vector>
 
+/// A SAT solver interface using IPASIR
 class SatSolver
 {
 public:
+  /// SatSolver Constructor
   inline SatSolver() : solver_(ipasir_init()), num_vars(0) { }
+  
+  /// SatSolver Destructor
   inline ~SatSolver() { ipasir_release(solver_); }
+  
+  /// Destroys the currently used #solver_ and requests a new one
   inline void reset();
+  
+  /// Solves the given CNF
   inline int solve() { return ipasir_solve(solver_); }
+  
+  /// Adds a clause from a literal vector to the formula inside #solver_
   inline void addClause(std::vector<Lit>& clause);
+  
+  /// Adds a clause from a Clause object to the formula inside #solver_
   inline void addClause(const Clause* clause);
+  
+  /// Gets the Lit representing the found value of \a v
   inline Lit getValue(Var v);
+  
+  /// Reserves \num variable indexes inside #solver_
   inline Var reserveVars(unsigned num);
   
 private:
-  void* solver_;
-  unsigned num_vars;
+  void* solver_;     ///< IPASIR solver object
+  unsigned num_vars; ///< number of variables in #solver_
 };
 
 inline void SatSolver::reset()

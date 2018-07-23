@@ -33,8 +33,8 @@ public:
   
   /// Main QBF solving method
   /** Decides the given formula and returns the appropriate result.
-   * @return 10 : #formula_ is TRUE\n
-   *         20 : #formula_ is FALSE\n
+   * @return 10 : #formula_ is TRUE \n
+   *         20 : #formula_ is FALSE \n
    *         otherwise undefined
    */
   int solve();
@@ -62,8 +62,8 @@ private:
    * #options_ is reached. It can also happen that the truth value of #formula_ is decided prematurely, and the
    * appropriate value is returned. Phase based initialisation is also used, as it seems to improve the proof search
    * strategy.
-   * @return 10 : #formula_ is TRUE
-   *         20 : #formula_ is FALSE
+   * @return 10 : #formula_ is TRUE \n
+   *         20 : #formula_ is FALSE \n
    *         otherwise undefined
    */
   int initA();

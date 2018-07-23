@@ -14,18 +14,35 @@
 
 class Clause;
 
+/// Class representing a quantified boolean formula
 class Formula
 {
 public:
+  /// Formula Constructor
   Formula();
+  
+  /// Formula Destructor
   ~Formula();
   
+  /// Checks whether a given variable is quantified
   inline bool isQuantified(Var v) const;
+  
+  /// Checks whether a given variables is existentially quantified
   inline bool isExistential(Var v) const;
   
+  /// Adds a Clause to #matrix
+  /** Simplifies the given literal vector \a c, creates a Clause object in memory and adds it to #matrix.
+   * @param c A vector of literals
+   */
   void addClause(std::vector<Lit>& c);
+  
+  /// Adds an existential variable \a v to #free_variables
   void addFreeVar(Var v);
+  
+  /// Adds a Quant to #prefix
   int addQuantifier(QuantType type, std::vector<Var>& variables);
+  
+  /// Turns #free_variables into an existential Quant and calculates #position_offset
   void finalise();
   
   inline unsigned long numVars() const;
@@ -39,24 +56,26 @@ public:
   inline unsigned int getLocalPosition(Var v) const;
   inline int getDepth(Var v) const;
   
+  /// Prints Formula \a f to output stream \a out
   friend std::ostream& operator<<(std::ostream& out, const Formula& f);
 
 private:
   
-  std::vector<Quant*> prefix;
-  std::vector<Clause*> matrix;
-  unsigned int num_exists;
-  unsigned int num_forall;
+  std::vector<Quant*> prefix;  ///< Prefix of the QBF
+  std::vector<Clause*> matrix; ///< Matrix of the QBF
+  unsigned int num_exists;     ///< Number of existential variables
+  unsigned int num_forall;     ///< Number of universal variables
   
-  std::vector<int> quant_depth;
-  std::vector<unsigned> quant_position;
-  std::vector<unsigned> position_counters;
-  std::vector<unsigned> position_offset;
+  std::vector<int> quant_depth;            ///< Lookup table: \n index is the variable \n value is the quantifier
+  std::vector<unsigned> quant_position;    ///< Lookup table: \n index is the variable \n value is position
+  std::vector<unsigned> position_counters; ///< Lookup table: \n index is the qunatifier \n value is size
+  std::vector<unsigned> position_offset;   ///< Lookup table: \n index is the quantifier \n value is phase offset
   
-  std::vector<Var> free_variables;
-  std::vector<Lit> tmp_exists;
-  std::vector<Lit> tmp_forall;
+  std::vector<Var> free_variables; ///< Temporary vector of unquantified variables
+  std::vector<Lit> tmp_exists;     ///< Temporary vector of existential variables
+  std::vector<Lit> tmp_forall;     ///< Temporary vector of universal variables
   
+  /// Quantifies variable \a v at quantifier with index \a depth
   int quantify(const Var v, unsigned depth);
 };
 

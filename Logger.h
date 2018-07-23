@@ -10,9 +10,13 @@
 
 #ifndef NDEBUG
 
+/// Logging utility for DEBUG mode builds
 struct Logger
 {
+  /// Logs a printf style format string to stdout
   static void log (const char * fmt, ...);
+  
+  /// Logs a clause and then a printf style format string to stdout
   static void log_cl (std::vector<Lit>& clause, const char * fmt, ...);
 };
 
