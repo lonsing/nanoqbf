@@ -15,6 +15,7 @@ Options::Options() :
   pparams_a(PruningParams((unsigned)-1)),
   pparams_b(PruningParams(50)),
   warmup_samples(16),
+  structured_warmup(true),
   file_name("")
 {}
 
@@ -29,7 +30,9 @@ const Options* Options::make_options(int argc, const char* argv[])
     parse_opt.add_options()
     ("t,time", "Time limit in seconds", cxxopts::value<int>())
     ("m,memory", "Memory limit in MB", cxxopts::value<int>())
-    ("w,warmup", "Number of warmup assignments", cxxopts::value<int>())
+    ("w,warmup-samples", "Number of warmup assignments", cxxopts::value<int>())
+    ("do-structured-warmup", "Activate structured warmup when initialising A (default)")
+    ("no-structured-warmup", "Deactivate structured warmup when initialising A")
     ("p,pruning-a", "Pruning mode A: none, periodic or dynamic", cxxopts::value<std::string>())
     ("q,pruning-b", "Pruning mode B: none, periodic or dynamic", cxxopts::value<std::string>())
     ("period-a", "Number of iterations inbetween prunings of A", cxxopts::value<int>())
@@ -63,13 +66,22 @@ const Options* Options::make_options(int argc, const char* argv[])
         throw cxxopts::OptionException("Memory limit must be positive");
     }
     
-    if(result.count("warmup"))
+    if(result.count("warmup-samples"))
     {
-      if(result["warmup"].as<int>() > 0)
-        opt->warmup_samples = (unsigned)result["warmup"].as<unsigned>();
+      if(result["warmup-samples"].as<int>() > 0)
+        opt->warmup_samples = (unsigned)result["warmup-samples"].as<unsigned>();
       else
         throw cxxopts::OptionException("Number of warmup samples must be positive");
     }
+  
+    if(result.count("do-structured-warmup") && result.count("no-structured-warmup"))
+      throw cxxopts::OptionException("Structural warmup is either active or inactive, cannot be both");
+    
+    if(result.count("do-structured-warmup"))
+      opt->structured_warmup = true;
+  
+    if(result.count("no-structured-warmup"))
+      opt->structured_warmup = false;
   
     if(result.count("pruning-a"))
       opt->pruning_a = parsePruning(result["pruning-a"].as<std::string>());

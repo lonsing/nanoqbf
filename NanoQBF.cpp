@@ -126,6 +126,8 @@ int NanoQBF::initA()
     warmup_solver.addClause(values);
   }
   
+  if(!options_->structured_warmup) return 0;
+  
   for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
   {
     const Quant* quant = formula_->getQuant(qi);
