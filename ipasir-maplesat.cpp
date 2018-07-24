@@ -108,7 +108,7 @@ public:
   int val(int lit)
   {
     assert(!nomodel);
-    unsigned v = std::abs(lit);
+    int v = (int)std::abs(lit);
     if (nVars() < v) return -v;
     lbool res = modelValue(import(lit));
     int sign = (res == l_False);
