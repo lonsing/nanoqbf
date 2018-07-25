@@ -26,9 +26,11 @@ include(ExternalProject)
 
 ExternalProject_Add(maplesat
         URL "https://sites.google.com/a/gsd.uwaterloo.ca/maplesat/MapleSAT.zip?attredirects=0&d=1"
+        URL_HASH SHA256=dd2a3445bf7d58338e39d295b7080021a4e00f116427ecf4e6a0ea4390e8e16e
         PREFIX ${CMAKE_CURRENT_BINARY_DIR}/maplesat
         CONFIGURE_COMMAND ""
-        BUILD_COMMAND export MROOT=${CMAKE_CURRENT_BINARY_DIR}/maplesat/src/maplesat &&
+        BUILD_COMMAND export CFLAGS=-w &&
+        export MROOT=${CMAKE_CURRENT_BINARY_DIR}/maplesat/src/maplesat &&
         cd ${CMAKE_CURRENT_BINARY_DIR}/maplesat/src/maplesat/simp/ &&
         make libr &&
         mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/lib/ &&
