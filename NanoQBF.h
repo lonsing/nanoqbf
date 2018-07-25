@@ -56,6 +56,9 @@ private:
   std::vector<std::vector<Var>> subformula_vars_a_; ///< Variables used in each sub-formula of #solver_a_
   std::vector<std::vector<Var>> subformula_vars_b_; ///< Variables used in each sub-formula of #solver_b_
   
+  std::vector<Assignment*> subformula_exps_a_; ///< Vector of assignments that expanded a sub-formula in #solver_a_
+  std::vector<Assignment*> subformula_exps_b_; ///< Vector of assignments that expanded a sub-formula in #solver_b_
+  
   /// Initialises the SAT formula in #solver_a_
   /** Initialises a sat solver with the propositional part of #formula_ and takes the solution for initialising
    * #subformula_solutions_b_ and #solver_a_. This is done in a lazy way until the number of sub-formulas specified in
@@ -138,6 +141,7 @@ void NanoQBF::pruneA()
   vars_a_.clear();
   subformula_vars_a_.clear();
   subformula_solutions_b_.clear();
+  subformula_exps_a_.clear();
   solver_a_.reset();
   const Quant* q = formula_->getQuant(0);
   if(q->type == QuantType::EXISTS)
@@ -152,6 +156,7 @@ void NanoQBF::pruneB()
   vars_b_.clear();
   subformula_vars_b_.clear();
   subformula_solutions_a_.clear();
+  subformula_exps_b_.clear();
   solver_b_.reset();
   const Quant* q = formula_->getQuant(0);
   if(q->type == QuantType::FORALL)
