@@ -68,6 +68,11 @@ int NanoQBF::solve()
     LOG("c complete time B: %f", time_complete_b);
   
     time_tmp = read_cpu_time();
+    if(solver_a_.solve() == -1)
+    {
+      printf("c Solver A went out of memory, pruning and trying again\n");
+      pruneA(), completeA(), forced_prune_b_ = true;
+    }
     if(solver_a_.solve() == 20) return 20;
     time_solve_a += read_cpu_time() - time_tmp;
   
@@ -78,6 +83,11 @@ int NanoQBF::solve()
     time_complete_b += read_cpu_time() - time_tmp;
     
     time_tmp = read_cpu_time();
+    if(solver_b_.solve() == -1)
+    {
+      printf("c Solver B went out of memory, pruning and trying again\n");
+      pruneB(), completeB(), forced_prune_a_ = true;
+    }
     if(solver_b_.solve() == 20) return 10;
     time_solve_b += read_cpu_time() - time_tmp;
     

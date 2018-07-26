@@ -80,12 +80,20 @@ public:
   ~IPAsirMapleSAT()
   { reset(); }
   
-  void add(int lit)
+  int add(int lit)
   {
-    reset();
-    nomodel = true;
-    if (lit) clause.push(import(lit));
-    else addClause(clause), clause.clear();
+    try
+    {
+      reset();
+      nomodel = true;
+      if (lit) clause.push(import(lit));
+      else addClause(clause), clause.clear();
+      return 0;
+    }
+    catch(Minisat::OutOfMemoryException e)
+    {
+      return 1;
+    }
   }
   
   void assume(int lit)
@@ -97,12 +105,19 @@ public:
   
   int solve()
   {
+    try
+    {
     calls++;
     reset();
     lbool res = solveLimited(assumptions);
     assumptions.clear();
     nomodel = (res != l_True);
     return (res == l_Undef) ? 0 : (res == l_True ? 10 : 20);
+    }
+    catch(Minisat::OutOfMemoryException e)
+    {
+      return -1;
+    }
   }
   
   int val(int lit)
@@ -163,8 +178,8 @@ void ipasir_release(void* s)
 int ipasir_solve(void* s)
 { return import(s)->solve(); }
 
-void ipasir_add(void* s, int l)
-{ import(s)->add(l); }
+int ipasir_add(void* s, int l)
+{ return import(s)->add(l); }
 
 void ipasir_assume(void* s, int l)
 { import(s)->assume(l); }

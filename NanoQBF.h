@@ -82,6 +82,9 @@ private:
    */
   inline void pruneB();
   
+  bool forced_prune_a_;
+  bool forced_prune_b_;
+  
   /// Checks whether the prune strategy specified in #options_ is met, and calls pruneA()
   inline void pruneCheckA();
   
@@ -163,9 +166,9 @@ void NanoQBF::pruneCheckA()
   bool prune_periodic = (options_->pruning_a == Options::PruningMode::PERIODIC &&
                          iteration_ % options_->pparams_a.period == 0);
   bool prune_dynamic = (options_->pruning_a == Options::PruningMode::DYNAMIC &&
-                        read_mem_usage() > options_->memory_limit * 0.8);
+                        read_mem_usage() > options_->memory_limit * 0.7);
   
-  if(prune_periodic || prune_dynamic) pruneA();
+  if(prune_periodic || prune_dynamic|| forced_prune_a_) pruneA(), forced_prune_a_ = false;
 }
 
 void NanoQBF::pruneCheckB()
@@ -173,9 +176,9 @@ void NanoQBF::pruneCheckB()
   bool prune_periodic = (options_->pruning_b == Options::PruningMode::PERIODIC &&
                          iteration_ % options_->pparams_b.period == 0);
   bool prune_dynamic = (options_->pruning_b == Options::PruningMode::DYNAMIC &&
-                        read_mem_usage() > options_->memory_limit * 0.8);
+                        read_mem_usage() > options_->memory_limit * 0.7);
   
-  if(prune_periodic || prune_dynamic) pruneB();
+  if(prune_periodic || prune_dynamic || forced_prune_b_) pruneB(), forced_prune_b_ = false;
 }
 
 #endif // NANOQBF_NANOQBF_H
