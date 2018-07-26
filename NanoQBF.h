@@ -172,7 +172,7 @@ void NanoQBF::pruneCheckA()
   bool prune_periodic = (options_->pruning_a == Options::PruningMode::PERIODIC &&
                          iteration_ % options_->pparams_a.period == 0);
   bool prune_dynamic = (options_->pruning_a == Options::PruningMode::DYNAMIC &&
-                        read_mem_usage() > options_->memory_limit * 0.5);
+                        read_mem_usage() > options_->memory_limit * 0.7);
   
   if(prune_periodic || prune_dynamic) pruneA();
 }
@@ -182,7 +182,7 @@ void NanoQBF::pruneCheckB()
   bool prune_periodic = (options_->pruning_b == Options::PruningMode::PERIODIC &&
                          iteration_ % options_->pparams_b.period == 0);
   bool prune_dynamic = (options_->pruning_b == Options::PruningMode::DYNAMIC &&
-                        read_mem_usage() > options_->memory_limit * 0.5);
+                        read_mem_usage() > options_->memory_limit * 0.7);
   
   if(prune_periodic || prune_dynamic) pruneB();
 }
