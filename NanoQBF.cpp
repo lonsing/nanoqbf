@@ -83,7 +83,15 @@ int NanoQBF::solve()
     pruneCheckB();
     
     time_tmp = read_cpu_time();
-    completeB();
+    try
+    {
+      completeB();
+    }
+    catch (std::bad_alloc& ex)
+    {
+      printf("c Completing B went out of memory, pruning and trying again\n");
+      pruneB(), completeB(), forced_prune_a_ = true;
+    }
     time_complete_b += read_cpu_time() - time_tmp;
     
     time_tmp = read_cpu_time();
@@ -100,7 +108,15 @@ int NanoQBF::solve()
     pruneCheckA();
     
     time_tmp = read_cpu_time();
-    completeA();
+    try
+    {
+      completeA();
+    }
+    catch (std::bad_alloc& ex)
+    {
+      printf("c Completing A went out of memory, pruning and trying again\n");
+      pruneA(), completeA(), forced_prune_b_ = true;
+    }
     time_complete_a += read_cpu_time() - time_tmp;
   }
 }

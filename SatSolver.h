@@ -67,6 +67,7 @@ inline void SatSolver::addClause(std::vector<Lit>& clause)
   for(const Lit l : clause)
     mem_error |= ipasir_add(solver_, l);
   mem_error |= ipasir_add(solver_, 0);
+  if(mem_error) throw std::bad_alloc();
 }
 
 inline void SatSolver::addClause(const Clause* clause)
@@ -76,6 +77,7 @@ inline void SatSolver::addClause(const Clause* clause)
   for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
     mem_error |= ipasir_add(solver_, *l_iter);
   mem_error |= ipasir_add(solver_, 0);
+  if(mem_error) throw std::bad_alloc();
 }
 
 inline Lit SatSolver::getValue(Var v)
