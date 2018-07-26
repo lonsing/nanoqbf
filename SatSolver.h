@@ -16,7 +16,7 @@ class SatSolver
 {
 public:
   /// SatSolver Constructor
-  inline SatSolver() : solver_(ipasir_init()), num_vars(0) { }
+  inline SatSolver() : solver_(ipasir_init()), num_vars(0), mem_error(false){ }
   
   /// SatSolver Destructor
   inline ~SatSolver() { ipasir_release(solver_); }
@@ -25,7 +25,7 @@ public:
   inline void reset();
   
   /// Solves the given CNF
-  inline int solve() { return ipasir_solve(solver_); }
+  inline int solve();
   
   /// Adds a clause from a literal vector to the formula inside #solver_
   inline void addClause(std::vector<Lit>& clause);
@@ -39,9 +39,13 @@ public:
   /// Reserves \num variable indexes inside #solver_
   inline Var reserveVars(unsigned num);
   
+  /// Checks whether there was a memory error
+  inline bool hasMemory() const { return !mem_error; }
+  
 private:
   void* solver_;     ///< IPASIR solver object
   unsigned num_vars; ///< number of variables in #solver_
+  bool mem_error;    ///< records that an out of memory error occured
 };
 
 inline void SatSolver::reset()
@@ -49,22 +53,29 @@ inline void SatSolver::reset()
   ipasir_release(solver_);
   solver_ = ipasir_init();
   num_vars = 0;
+  mem_error = false;
+}
+
+inline int SatSolver::solve()
+{
+  if (mem_error) return -1;
+  return ipasir_solve(solver_);
 }
 
 inline void SatSolver::addClause(std::vector<Lit>& clause)
 {
   for(const Lit l : clause)
-    ipasir_add(solver_, l);
-  ipasir_add(solver_, 0);
+    mem_error |= ipasir_add(solver_, l);
+  mem_error |= ipasir_add(solver_, 0);
 }
 
 inline void SatSolver::addClause(const Clause* clause)
 {
   for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
-    ipasir_add(solver_, *l_iter);
+    mem_error |= ipasir_add(solver_, *l_iter);
   for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
-    ipasir_add(solver_, *l_iter);
-  ipasir_add(solver_, 0);
+    mem_error |= ipasir_add(solver_, *l_iter);
+  mem_error |= ipasir_add(solver_, 0);
 }
 
 inline Lit SatSolver::getValue(Var v)

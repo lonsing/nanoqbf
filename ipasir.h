@@ -69,7 +69,7 @@ void ipasir_release (void * solver);
  * negation overflow).  This applies to all the literal
  * arguments in API functions.
  */
-void ipasir_add (void * solver, int lit_or_zero);
+int ipasir_add (void * solver, int lit_or_zero);
 
 /**
  * Add an assumption for the next SAT search (the next call

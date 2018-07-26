@@ -13,7 +13,7 @@ Options::Options() :
   pruning_a(PruningMode::DYNAMIC),
   pruning_b(PruningMode::PERIODIC),
   pparams_a(PruningParams((unsigned)-1)),
-  pparams_b(PruningParams(50)),
+  pparams_b(PruningParams(100)),
   warmup_samples(16),
   structured_warmup(true),
   file_name("")
