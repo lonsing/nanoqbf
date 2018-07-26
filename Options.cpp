@@ -92,7 +92,7 @@ const Options* Options::make_options(int argc, const char* argv[])
     if(result.count("period-a"))
     {
       if(result["period-a"].as<int>() > 0)
-        opt->pparams_a.period = (unsigned)result["period-a"].as<unsigned>();
+        opt->pparams_a.period = (unsigned)result["period-a"].as<int>();
       else
         throw cxxopts::OptionException("Pruning period cannot be negative, use '-p none' instead");
     }
@@ -100,7 +100,7 @@ const Options* Options::make_options(int argc, const char* argv[])
     if(result.count("period-b"))
     {
       if(result["period-b"].as<int>() > 0)
-        opt->pparams_b.period = (unsigned)result["period-b"].as<unsigned>();
+        opt->pparams_b.period = (unsigned)result["period-b"].as<int>();
       else
         throw cxxopts::OptionException("Pruning period cannot be negative, use '-q none' instead");
     }

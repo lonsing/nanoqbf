@@ -6,7 +6,7 @@
 #include "types/Formula.h"
 #include "auxutils.h"
 
-NanoQBF::NanoQBF(const Formula* formula, const Options* options) :
+NanoQBF::NanoQBF(Formula* formula, const Options* options) :
 formula_(formula),
 options_(options),
 iteration_(0)
@@ -188,8 +188,9 @@ void NanoQBF::completeA()
   
   unsigned counter = 0;
   
-  for(const std::vector<Var>& vars : subformula_vars_b_)
+  for(unsigned si = 0; si < subformula_vars_b_.size(); si++)
   {
+    const std::vector<Var>& vars = subformula_vars_b_[si];
     unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::EXISTS);
     complete_values.clear();
     for(; qi < formula_->numQuants(); qi += 2)
@@ -207,12 +208,13 @@ void NanoQBF::completeA()
     
     if(subformula_solutions_b_.find(assignment) != subformula_solutions_b_.end())
       continue;
+  
+    const Assignment* exp_assignment = subformula_exps_b_[si];
+    formula_->learn_blocking_clause(exp_assignment, assignment);
     
     counter += 1;
     
-    Assignment* a = Assignment::copy_assignment(assignment);
-    
-    extendA(a);
+    extendA(Assignment::copy_assignment(assignment));
   }
   
   assert(counter != 0);
@@ -227,8 +229,9 @@ void NanoQBF::completeB()
   
   unsigned counter = 0;
   
-  for(const std::vector<Var>& vars : subformula_vars_a_)
+  for(unsigned si = 0; si < subformula_vars_a_.size(); si++)
   {
+    const std::vector<Var>& vars = subformula_vars_a_[si];
     unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
     complete_values.clear();
     for(; qi < formula_->numQuants(); qi += 2)
@@ -246,11 +249,13 @@ void NanoQBF::completeB()
   
     if(subformula_solutions_a_.find(assignment) != subformula_solutions_a_.end())
       continue;
+  
+    const Assignment* exp_assignment = subformula_exps_a_[si];
+    formula_->learn_blocking_cube(assignment, exp_assignment);
     
     counter += 1;
     
-    Assignment* a = Assignment::copy_assignment(assignment);
-    extendB(a);
+    extendB(Assignment::copy_assignment(assignment));
   }
   
   assert(counter != 0);
@@ -395,6 +400,26 @@ void NanoQBF::extendB(Assignment* assignment)
   
   Assignment::destroy_assignment(exi);
   subformula_vars_b_.push_back(subformula_vars);
+  
+  for(unsigned ci = 0; ci < formula_->numCubes(); ci++)
+  {
+    const Clause* clause = formula_->getCube(ci);
+    bool sat = false;
+    for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
+      sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
+    
+    if(sat) continue;
+    
+    extend_clause.clear();
+    for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
+    {
+      Var v = var(*l_iter); bool s = sign(*l_iter);
+      extend_clause.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
+    }
+    
+    solver_b_.addClause(extend_clause);
+  }
+  
   
   std::vector<Lit> global_nand;
   std::vector<Lit> lit_cl;

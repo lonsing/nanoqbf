@@ -5,6 +5,7 @@
 #include "../Logger.h"
 #include "../types/common.h"
 #include "../types/Assignment.h"
+#include "../types/Assumption.h"
 #include <vector>
 #include <iostream>
 #include <random>
@@ -12,6 +13,8 @@
 
 void test_make_assignment()
 {
+  std::cout << "Running test_make_assignment()" << std::endl;
+  
   std::vector<Lit> my_lits;
   std::random_device dev;
   std::mt19937 rand(dev());
@@ -47,6 +50,8 @@ void test_make_assignment()
 
 void test_hash_assignment()
 {
+  std::cout << "Running test_hash_assignment()" << std::endl;
+  
   std::vector<Lit> my_lits;
   std::random_device dev;
   std::mt19937 rand(dev());
@@ -77,6 +82,8 @@ void test_hash_assignment()
 
 void test_make_lit()
 {
+  std::cout << "Running test_make_lit()" << std::endl;
+  
   std::vector<Lit> my_lits;
   std::random_device dev;
   std::mt19937 rand(dev());
@@ -90,6 +97,43 @@ void test_make_lit()
   }
 }
 
+void test_assumption()
+{
+  std::cout << "Running test_assumption()" << std::endl;
+  
+  std::random_device dev;
+  std::mt19937 rand(dev());
+  
+  std::vector<Assumption::Value> aval;
+  Assumption a;
+  
+  size_t num = 100;
+  
+  for(size_t i = 0; i < num; i++)
+    aval.push_back((Assumption::Value)(rand() % 3));
+  
+  assert(a.size() == 0);
+  a.resize(num);
+  assert(a.size() == num);
+  for(size_t i = 0; i < num; i++)
+    a.set(i, aval[i]);
+  
+  for(size_t i = 0; i < num; i++)
+  {
+    assert(a.get(i) == aval[i]);
+    std::cout << a.get(i) << " " << aval[i] << std::endl;
+  }
+  
+  a.resize(2 * num);
+  for(size_t i = num; i < 2 * num; i++)
+    assert(a.get(i) == Assumption::Value::NONE);
+  
+  a.resize(num / 2);
+  assert(a.size() == num / 2);
+  for(size_t i = 0; i < num / 2; i++)
+    assert(a.get(i) == aval[i]);
+}
+
 
 int main()
 {
@@ -98,6 +142,7 @@ int main()
   test_make_assignment();
   test_hash_assignment();
   test_make_lit();
+  test_assumption();
   
   return 0;
 }

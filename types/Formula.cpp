@@ -66,6 +66,41 @@ void Formula::addClause(std::vector<Lit>& c)
   matrix.push_back(clause);
 }
 
+void Formula::learn_blocking(LearnType type, const Assignment* exi_assignment, const Assignment* uni_assignment)
+{
+  assert(exi_assignment->size <= num_exists);
+  assert(uni_assignment->size <= num_forall);
+  
+  tmp_exists.clear();
+  tmp_forall.clear();
+  
+  unsigned ei = 0, fi = 0;
+  
+  for(const Quant* quant : prefix)
+  {
+    // assure reduced clauses/cubes
+    if(ei == exi_assignment->size && type == LearnType::CLAUSE) break;
+    if(fi == uni_assignment->size && type == LearnType::CUBE) break;
+    
+    if(quant->type == EXISTS)
+    {
+      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end() && ei < exi_assignment->size; v_iter++)
+        tmp_exists.push_back(make_lit(*v_iter, exi_assignment->get(ei++)));
+    }
+    else
+    {
+      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end() && fi < uni_assignment->size; v_iter++)
+        tmp_forall.push_back(make_lit(*v_iter, uni_assignment->get(fi++)));
+    }
+  }
+  
+  Clause* clause = Clause::make_clause(tmp_exists, tmp_forall);
+  if(type == LearnType::CLAUSE)
+    matrix.push_back(clause);
+  else
+    negated_cubes.push_back(clause);
+}
+
 int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
 {
   if(type == QuantType::NONE)
@@ -130,6 +165,8 @@ void Formula::finalise()
   
   for(unsigned qi = 2; qi < prefix.size(); qi++)
     position_offset[qi] = position_offset[qi - 2] + prefix[qi-2]->size;
+
+  num_original = (unsigned)matrix.size();
 }
 
 

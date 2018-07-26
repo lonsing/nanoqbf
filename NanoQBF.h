@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include "SatSolver.h"
 #include "types/Assignment.h"
+#include "types/Assumption.h"
 #include "types/Formula.h"
 #include "hashes.h"
 #include "Options.h"
@@ -26,7 +27,7 @@ public:
    * @param formula Input QBF Formula
    * @param options Options for fine tuning the solver
    */
-  NanoQBF(const Formula* formula, const Options* options);
+  NanoQBF(Formula* formula, const Options* options);
   
   /// NanoQBF Destructor
   ~NanoQBF();
@@ -39,7 +40,7 @@ public:
    */
   int solve();
 private:
-  const Formula* formula_; ///< QBF Formula which should be solved
+  Formula* formula_; ///< QBF Formula which should be solved
   const Options* options_; ///< Options fine tuning the behavior of the solver
   
   SatSolver solver_a_; ///< SatSolver used for solving the universal expansion
@@ -58,6 +59,9 @@ private:
   
   std::vector<Assignment*> subformula_exps_a_; ///< Vector of assignments that expanded a sub-formula in #solver_a_
   std::vector<Assignment*> subformula_exps_b_; ///< Vector of assignments that expanded a sub-formula in #solver_b_
+  
+  Assumption assumptions_a_;
+  Assumption assumptions_b_;
   
   /// Initialises the SAT formula in #solver_a_
   /** Initialises a sat solver with the propositional part of #formula_ and takes the solution for initialising
@@ -168,7 +172,7 @@ void NanoQBF::pruneCheckA()
   bool prune_periodic = (options_->pruning_a == Options::PruningMode::PERIODIC &&
                          iteration_ % options_->pparams_a.period == 0);
   bool prune_dynamic = (options_->pruning_a == Options::PruningMode::DYNAMIC &&
-                        read_mem_usage() > options_->memory_limit * 0.8);
+                        read_mem_usage() > options_->memory_limit * 0.5);
   
   if(prune_periodic || prune_dynamic) pruneA();
 }
@@ -178,7 +182,7 @@ void NanoQBF::pruneCheckB()
   bool prune_periodic = (options_->pruning_b == Options::PruningMode::PERIODIC &&
                          iteration_ % options_->pparams_b.period == 0);
   bool prune_dynamic = (options_->pruning_b == Options::PruningMode::DYNAMIC &&
-                        read_mem_usage() > options_->memory_limit * 0.8);
+                        read_mem_usage() > options_->memory_limit * 0.5);
   
   if(prune_periodic || prune_dynamic) pruneB();
 }
