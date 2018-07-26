@@ -13,7 +13,7 @@ set(COMMON_FILES parseutils.h Reader.cpp Reader.h Logger.cpp Logger.h hashes.cpp
 set(SAT_FILES ipasir-maplesat.cpp ipasir.h SatSolver.h)
 
 add_executable(nanoqbf ${SOLVER_FILES} ${TYPE_FILES} ${COMMON_FILES} ${SAT_FILES})
-add_executable(test_types Logger.cpp Logger.h ${TYPE_FILES} test/test_types.cpp)
+add_executable(test_types hashes.h hashes.cpp Logger.cpp Logger.h ${TYPE_FILES} test/test_types.cpp)
 
 find_package( ZLIB REQUIRED )
 if ( ZLIB_FOUND )

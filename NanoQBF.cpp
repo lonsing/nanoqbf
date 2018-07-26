@@ -9,7 +9,9 @@
 NanoQBF::NanoQBF(Formula* formula, const Options* options) :
 formula_(formula),
 options_(options),
-iteration_(0)
+iteration_(0),
+forced_prune_a_(false),
+forced_prune_b_(false)
 {
   if(formula_->numQuants() == 0) return;
   
@@ -68,12 +70,14 @@ int NanoQBF::solve()
     LOG("c complete time B: %f", time_complete_b);
   
     time_tmp = read_cpu_time();
-    if(solver_a_.solve() == -1)
+    int res_a = solver_a_.solve();
+    while(res_a == -1)
     {
       printf("c Solver A went out of memory, pruning and trying again\n");
       pruneA(), completeA(), forced_prune_b_ = true;
+      res_a = solver_a_.solve();
     }
-    if(solver_a_.solve() == 20) return 20;
+    if(res_a == 20) return 20;
     time_solve_a += read_cpu_time() - time_tmp;
   
     pruneCheckB();
@@ -83,12 +87,14 @@ int NanoQBF::solve()
     time_complete_b += read_cpu_time() - time_tmp;
     
     time_tmp = read_cpu_time();
-    if(solver_b_.solve() == -1)
+    int res_b = solver_b_.solve();
+    while(res_b == -1)
     {
       printf("c Solver B went out of memory, pruning and trying again\n");
       pruneB(), completeB(), forced_prune_a_ = true;
+      res_b = solver_b_.solve();
     }
-    if(solver_b_.solve() == 20) return 10;
+    if(res_b == 20) return 10;
     time_solve_b += read_cpu_time() - time_tmp;
     
     pruneCheckA();
@@ -158,7 +164,10 @@ int NanoQBF::initA()
       }
       pos += quant_i->size;
     }
-  
+
+    assignment_n->rehash();
+    assignment_p->rehash();
+    
     extendA(assignment_n);
     extendA(assignment_p);
   }
@@ -183,6 +192,9 @@ int NanoQBF::initA()
       }
       pos += quant_i->size;
     }
+  
+    assignment_n->rehash();
+    assignment_p->rehash();
     
     extendB(assignment_n);
     extendB(assignment_p);

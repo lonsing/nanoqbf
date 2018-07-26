@@ -10,6 +10,8 @@
 #include <iostream>
 #include <random>
 #include <assert.h>
+#include <cstring>
+#include "../hashes.h"
 
 void test_make_assignment()
 {
@@ -19,7 +21,7 @@ void test_make_assignment()
   std::random_device dev;
   std::mt19937 rand(dev());
   
-  for(int i = 0; i < 100; i++)
+  for(int i = 0; i < 10; i++)
   {
     int n = 1 + (unsigned)rand() % 40;
     std::cout << i << " " << n << " : ";
@@ -46,6 +48,86 @@ void test_make_assignment()
     
     Assignment::destroy_assignment(a);
   }
+  
+  for(int i = 0; i < 10; i++)
+  {
+    int n = 40 + (unsigned)rand() % 160;
+    std::cout << i << " " << n << " : ";
+    my_lits.clear();
+    for(int j = 1; j <= n; j++)
+    {
+      my_lits.push_back(rand() % 2 ? j : -j);
+      std::cout << my_lits.back() << " ";
+    }
+    std::cout << std::endl;
+    
+    Assignment* a = Assignment::make_assignment(my_lits);
+    Assignment* b = Assignment::make_assignment(n);
+    for(unsigned j = 0; j < (unsigned)n; j++)
+    {
+      std::cout << "writing " << j << std::endl << std::flush;
+      b->set(j, !sign(my_lits[j]));
+      std::cout << "reading " << j << std::endl << std::flush;
+      assert(b->get(j) == !sign(my_lits[j]));
+    }
+      
+    b->rehash();
+  
+    assert(a->hash_value == a->hash_value);
+    assert(a->size == a->size);
+    assert(std::memcmp(a->bits, a->bits, (a->size + 7) / 8) == 0);
+    assert(*a == *a);
+    
+    assert(b->hash_value == b->hash_value);
+    assert(b->size == b->size);
+    assert(std::memcmp(b->bits, b->bits, (b->size + 7) / 8) == 0);
+    assert(*b == *b);
+  
+    assert(a->hash_value == b->hash_value);
+    assert(a->size == b->size);
+    assert(std::memcmp(a->bits, b->bits, (a->size + 7) / 8) == 0);
+    assert(*a == *b);
+  
+  
+    Assignment::destroy_assignment(a);
+    Assignment::destroy_assignment(b);
+  }
+  
+  
+}
+
+void test_copy_assignment()
+{
+  std::vector<Lit> my_lits;
+  std::random_device dev;
+  std::mt19937 rand(dev());
+  
+  int n = 1 + (unsigned)rand() % 40;
+  Assignment* a = Assignment::make_assignment(n);
+  
+  for(int i = 0; i < 10; i++)
+  {
+    std::cout << i << " " << n << " : ";
+    my_lits.clear();
+    for(int j = 1; j <= n; j++)
+    {
+      my_lits.push_back(rand() % 2 ? j : -j);
+      std::cout << my_lits.back() << " ";
+    }
+    std::cout << std::endl;
+    
+    a->update(my_lits);
+    a->rehash();
+    Assignment* b = Assignment::copy_assignment(a);
+    CompAssignment cmp;
+    assert(a->hash_value == b->hash_value);
+    assert(a->size == b->size);
+    assert(std::memcmp(a->bits, b->bits, (a->size + 7) / 8) == 0);
+    assert(cmp(a, b));
+    
+    Assignment::destroy_assignment(b);
+  }
+  Assignment::destroy_assignment(a);
 }
 
 void test_hash_assignment()
@@ -140,6 +222,7 @@ int main()
   LOG("Hello there, this is the testing file");
   
   test_make_assignment();
+  test_copy_assignment();
   test_hash_assignment();
   test_make_lit();
   test_assumption();

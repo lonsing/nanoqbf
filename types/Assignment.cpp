@@ -20,9 +20,11 @@ Assignment* Assignment::make_assignment(unsigned int size)
   unsigned int qwords = (bytes + sizeof(size_t) - 1) / sizeof(size_t);
   size_t* ptr = new size_t[qwords];
   assert(((size_t)ptr & 0x7UL) == 0x0UL);
-  
-  // for (size_t* pi = ptr; pi < ptr + qwords; pi++) *pi = 0;
-  
+
+#ifndef NDEBUG
+  for (size_t* pi = ptr; pi < ptr + qwords; pi++) *pi = 0;
+#endif
+    
   Assignment* assignment = (Assignment*)ptr;
   assignment->size = size;
   
@@ -53,7 +55,7 @@ Assignment* Assignment::copy_assignment(Assignment* original)
 {
   Assignment* res = Assignment::make_assignment(original->size);
   unsigned int bytes = sizeof(Assignment) - sizeof bits + (original->size + 7) / 8;
-  std::memcpy(res, (char*)original, bytes);
+  std::memcpy((char*)res, (char*)original, bytes);
   
   return res;
 }
@@ -111,7 +113,7 @@ bool operator==(const Assignment& lhs, const Assignment& rhs)
 {
   return (lhs.size == rhs.size) &&
          (lhs.hash_value == rhs.hash_value) &&
-         std::memcmp(lhs.bits, rhs.bits, (lhs.size + 7) / 8) == 0;
+         (std::memcmp(lhs.bits, rhs.bits, (lhs.size + 7) / 8) == 0);
 }
 
 std::ostream& operator<<(std::ostream& out, const Assignment& a)
