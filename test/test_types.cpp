@@ -116,10 +116,12 @@ void test_copy_assignment()
     a->update(my_lits);
     a->rehash();
     Assignment* b = Assignment::copy_assignment(a);
-    CompAssignment cmp;
     assert(a->hash_value == b->hash_value);
     assert(a->size == b->size);
     assert(std::memcmp(a->bits, b->bits, (a->size + 7) / 8) == 0);
+#ifndef NDEBUG
+    CompAssignment cmp;
+#endif
     assert(cmp(a, b));
     
     Assignment::destroy_assignment(b);

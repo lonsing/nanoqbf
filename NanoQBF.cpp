@@ -149,7 +149,7 @@ int NanoQBF::initA()
     }
     Assignment* assignment = Assignment::make_assignment(values);
     std::cout << *assignment << std::endl;
-    subformula_solutions_b_.insert(assignment);
+    
     extendA(assignment);
     
     for(unsigned vi = 0; vi < values.size(); vi++)
@@ -184,9 +184,7 @@ int NanoQBF::initA()
     assignment_n->rehash();
     assignment_p->rehash();
     
-    subformula_solutions_b_.insert(assignment_n);
     extendA(assignment_n);
-    subformula_solutions_b_.insert(assignment_p);
     extendA(assignment_p);
   }
   
@@ -214,9 +212,7 @@ int NanoQBF::initA()
     assignment_n->rehash();
     assignment_p->rehash();
     
-    subformula_solutions_a_.insert(assignment_n);
     extendB(assignment_n);
-    subformula_solutions_a_.insert(assignment_p);
     extendB(assignment_p);
   }
   
@@ -252,9 +248,7 @@ void NanoQBF::completeA()
     
     counter += 1;
     
-    Assignment* a = Assignment::copy_assignment(assignment);
-    subformula_solutions_b_.insert(a);
-    extendA(a);
+    extendA(Assignment::copy_assignment(assignment));
   }
   
   assert(counter != 0);
@@ -291,9 +285,7 @@ void NanoQBF::completeB()
     
     counter += 1;
     
-    Assignment* a = Assignment::copy_assignment(assignment);
-    subformula_solutions_a_.insert(a);
-    extendB(a);
+    extendB(Assignment::copy_assignment(assignment));
   }
   
   assert(counter != 0);
@@ -305,6 +297,14 @@ void NanoQBF::completeB()
 void NanoQBF::extendA(Assignment* assignment)
 {
   // LOG("extendA start:\n");
+  
+  if(unlikely(!subformula_solutions_b_.insert(assignment).second))
+  {
+    LOG("Aaborting extendA, tried double extend with:\n");
+    std::cout << "c" << *assignment << std::endl;
+    Assignment::destroy_assignment(assignment);
+    return;
+  }
   
   bool cache_possible = true;
   bool skip = false;
@@ -381,6 +381,14 @@ void NanoQBF::extendA(Assignment* assignment)
 void NanoQBF::extendB(Assignment* assignment)
 {
   // LOG("extendB start:\n");
+  
+  if(unlikely(!subformula_solutions_a_.insert(assignment).second))
+  {
+    LOG("Aaborting extendB, tried double extend with:\n");
+    std::cout << "c" << *assignment << std::endl;
+    Assignment::destroy_assignment(assignment);
+    return;
+  }
   
   bool cache_possible = true;
   bool skip = false;
