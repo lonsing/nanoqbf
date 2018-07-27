@@ -305,7 +305,15 @@ void NanoQBF::completeB()
 void NanoQBF::extendA(Assignment* assignment)
 {
   // LOG("extendA start:\n");
-  subformula_solutions_b_.insert(assignment);
+
+  if(unlikely(!subformula_solutions_b_.insert(assignment).second))
+  {
+    LOG("Aaborting extendA, tried double extend with:\n");
+    std::cout << "c" << *assignment << std::endl;
+    Assignment::destroy_assignment(assignment);
+    return;
+  }
+  
   subformula_exps_a_.push_back(assignment);
   
   bool cache_possible = true;
@@ -384,7 +392,14 @@ void NanoQBF::extendB(Assignment* assignment)
 {
   // LOG("extendB start:\n");
   
-  subformula_solutions_a_.insert(assignment);
+  if(unlikely(!subformula_solutions_a_.insert(assignment).second))
+  {
+    LOG("Aaborting extendB, tried double extend with:\n");
+    std::cout << "c" << *assignment << std::endl;
+    Assignment::destroy_assignment(assignment);
+    return;
+  }
+  
   subformula_exps_b_.push_back(assignment);
   
   bool cache_possible = true;

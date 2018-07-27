@@ -53,7 +53,7 @@ const Options* Options::make_options(int argc, const char* argv[])
     if (result.count("time"))
     {
       if(result["time"].as<int>() > 0)
-        opt->time_limit = result["time"].as<unsigned>();
+        opt->time_limit = (unsigned)result["time"].as<int>();
       else
         throw cxxopts::OptionException("Time limit must be positive");
     }
@@ -69,7 +69,7 @@ const Options* Options::make_options(int argc, const char* argv[])
     if(result.count("warmup-samples"))
     {
       if(result["warmup-samples"].as<int>() > 0)
-        opt->warmup_samples = (unsigned)result["warmup-samples"].as<unsigned>();
+        opt->warmup_samples = (unsigned)result["warmup-samples"].as<int>();
       else
         throw cxxopts::OptionException("Number of warmup samples must be positive");
     }

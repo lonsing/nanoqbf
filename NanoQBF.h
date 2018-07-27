@@ -147,6 +147,8 @@ void NanoQBF::pruneA()
     Assignment::destroy_assignment(av.first);
   vars_a_.clear();
   subformula_vars_a_.clear();
+  for(const auto & bs : subformula_solutions_b_)
+    Assignment::destroy_assignment(bs);
   subformula_solutions_b_.clear();
   subformula_exps_a_.clear();
   solver_a_.reset();
@@ -162,6 +164,8 @@ void NanoQBF::pruneB()
     Assignment::destroy_assignment(av.first);
   vars_b_.clear();
   subformula_vars_b_.clear();
+  for(const auto & as : subformula_solutions_a_)
+    Assignment::destroy_assignment(as);
   subformula_solutions_a_.clear();
   subformula_exps_b_.clear();
   solver_b_.reset();
