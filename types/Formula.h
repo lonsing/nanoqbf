@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "Quant.h"
+#include "Clause.h"
 
 #include <iosfwd>
 #include <vector>
@@ -54,10 +55,12 @@ public:
   inline unsigned int numUniversal() const;
   inline unsigned int getGlobalPosition(Var v) const;
   inline unsigned int getLocalPosition(Var v) const;
-  inline int getDepth(Var v) const;
+  inline int getVarDepth(Var v) const;
   
   /// Prints Formula \a f to output stream \a out
   friend std::ostream& operator<<(std::ostream& out, const Formula& f);
+  
+  
 
 private:
   
@@ -140,7 +143,7 @@ inline unsigned int Formula::getLocalPosition(Var v) const
   return quant_position[v];
 }
 
-inline int Formula::getDepth(Var v) const
+inline int Formula::getVarDepth(Var v) const
 {
   assert(isQuantified(v));
   return quant_depth[v];

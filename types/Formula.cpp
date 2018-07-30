@@ -114,6 +114,8 @@ void Formula::finalise()
   }
   else
   {
+    for(Var v : free_variables) quant_depth[v] = 0;
+    
     prefix[0] = Quant::make_quant(QuantType::EXISTS, free_variables);
   }
   
@@ -130,6 +132,19 @@ void Formula::finalise()
   
   for(unsigned qi = 2; qi < prefix.size(); qi++)
     position_offset[qi] = position_offset[qi - 2] + prefix[qi-2]->size;
+  
+  for(Clause* c : matrix)
+  {
+    int depth = -1;
+    for(const_lit_iterator l = c->begin_e(); l != c->end_e(); l++)
+      depth = std::max(depth, quant_depth[var(*l)]);
+    for(const_lit_iterator l = c->begin_a(); l != c->end_a(); l++)
+      depth = std::max(depth, quant_depth[var(*l)]);
+    assert(depth != -1 && (unsigned)depth < prefix.size());
+    c->depth = (unsigned)depth;
+  }
+  
+  // std::sort(matrix.begin(), matrix.end(), Clause::depth_order);
 }
 
 

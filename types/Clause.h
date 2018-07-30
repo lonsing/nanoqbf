@@ -14,6 +14,7 @@ struct Clause
 {
   unsigned int size_a; ///< Allocated size for universal literals in #lits
   unsigned int size_e; ///< Allocated size for existential literals in #lits
+  unsigned int depth;  ///< Deepest quantified literal in this clause
   
   Lit lits[2]; ///< Array of literals in the calsue
   
@@ -35,9 +36,17 @@ struct Clause
   /// Iterator pointing after last existential literal
   inline const_lit_iterator end_e() const {return lits + size_a + size_e;}
   
+  /// Orders clauses by their depth
+  static inline bool depth_order(const Clause* a, const Clause* b);
+  
   /// Prints Clause \a c to output stream \a out
   friend std::ostream& operator<<(std::ostream& out, const Clause& c);
 };
+
+bool Clause::depth_order(const Clause* a, const Clause* b)
+{
+  return a->depth < b->depth;
+}
 
 
 #endif //NANOQBF_CLAUSE_H

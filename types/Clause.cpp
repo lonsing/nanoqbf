@@ -16,6 +16,7 @@ Clause* Clause::make_clause(std::vector<Lit>& exi, std::vector<Lit>& uni)
   
   clause->size_a = (unsigned int)uni.size();
   clause->size_e = (unsigned int)exi.size();
+  clause->depth = (unsigned)-1;
   
   for(unsigned int i = 0; i < clause->size_a; i++)
     clause->lits[i] = uni[i];
