@@ -20,10 +20,16 @@ forced_prune_b_(false)
     solver_a_.reserveVars(qfirst->size);
   else
     solver_b_.reserveVars(qfirst->size);
+  
+  extend_exi = Assignment::make_assignment(formula_->numExistential());
+  extend_uni = Assignment::make_assignment(formula_->numUniversal());
 }
 
 NanoQBF::~NanoQBF()
 {
+  Assignment::destroy_assignment(extend_uni);
+  Assignment::destroy_assignment(extend_exi);
+  
   for(const auto & a : subformula_solutions_a_)
     Assignment::destroy_assignment(a);
   for(const auto & a : subformula_solutions_b_)
@@ -310,7 +316,6 @@ void NanoQBF::extendA(Assignment* assignment)
   bool skip = false;
   
   std::vector<Var> subformula_vars;
-  Assignment* uni = Assignment::make_assignment(assignment->size);
   unsigned uni_size = 0;
   
   unsigned qi = 0;
@@ -334,9 +339,9 @@ void NanoQBF::extendA(Assignment* assignment)
       
       if(!cache_possible) continue;
       
-      assignment->make_subassignment(uni, uni_size);
+      assignment->make_subassignment(extend_uni, uni_size);
       
-      const auto cache_iter = vars_a_.find(uni);
+      const auto cache_iter = vars_a_.find(extend_uni);
       if(cache_iter == vars_a_.end())
       {
         cache_possible = false;
@@ -350,12 +355,11 @@ void NanoQBF::extendA(Assignment* assignment)
     {
       Var subst = solver_a_.reserveVars(quant->size);
       subformula_vars.push_back(subst);
-      assignment->make_subassignment(uni, uni_size);
-      vars_a_[Assignment::copy_assignment(uni)] = subst;
+      assignment->make_subassignment(extend_uni, uni_size);
+      vars_a_[Assignment::copy_assignment(extend_uni)] = subst;
     }
   }
   
-  Assignment::destroy_assignment(uni);
   subformula_vars_a_.push_back(subformula_vars);
   
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
@@ -394,7 +398,6 @@ void NanoQBF::extendB(Assignment* assignment)
   bool skip = false;
   
   std::vector<Var> subformula_vars;
-  Assignment* exi = Assignment::make_assignment(assignment->size);
   unsigned exi_size = 0;
   
   unsigned qi = 0;
@@ -418,9 +421,9 @@ void NanoQBF::extendB(Assignment* assignment)
       
       if(!cache_possible) continue;
       
-      assignment->make_subassignment(exi, exi_size);
+      assignment->make_subassignment(extend_exi, exi_size);
       
-      const auto cache_iter = vars_b_.find(exi);
+      const auto cache_iter = vars_b_.find(extend_exi);
       if(cache_iter == vars_b_.end())
       {
         cache_possible = false;
@@ -434,12 +437,11 @@ void NanoQBF::extendB(Assignment* assignment)
     {
       Var subst = solver_b_.reserveVars(quant->size);
       subformula_vars.push_back(subst);
-      assignment->make_subassignment(exi, exi_size);
-      vars_b_[Assignment::copy_assignment(exi)] = subst;
+      assignment->make_subassignment(extend_exi, exi_size);
+      vars_b_[Assignment::copy_assignment(extend_exi)] = subst;
     }
   }
   
-  Assignment::destroy_assignment(exi);
   subformula_vars_b_.push_back(subformula_vars);
   
   std::vector<Lit> global_nand;

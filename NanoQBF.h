@@ -82,8 +82,8 @@ private:
    */
   inline void pruneB();
   
-  bool forced_prune_a_;
-  bool forced_prune_b_;
+  bool forced_prune_a_; ///< Forces pruning of formula A, when NanoQBF goes out of memory
+  bool forced_prune_b_; ///< Forces pruning of formula B, when NanoQBF goes out of memory
   
   /// Checks whether the prune strategy specified in #options_ is met, and calls pruneA()
   inline void pruneCheckA();
@@ -129,6 +129,8 @@ private:
    */
   void extendB(Assignment* assignment);
   
+  Assignment* extend_uni; ///< Assignment used for smaller subassignments in extendA(Assignment*)
+  Assignment* extend_exi; ///< Assignment used for smaller subassignments in extendB(Assignment*)
   std::vector<Lit> extend_clause; ///< Temporary clause used in extendA(Assignment*) and extendB(Assignment*)
 };
 
