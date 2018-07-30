@@ -362,7 +362,7 @@ void NanoQBF::extendA(Assignment* assignment)
   {
     const Clause* clause = formula_->getClause(ci);
     bool sat = false;
-    for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
+    for(const_lit_iterator l_iter = clause->begin_a(); !sat && l_iter != clause->end_a(); l_iter++)
       sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
     
     if(sat) continue;
@@ -451,7 +451,7 @@ void NanoQBF::extendB(Assignment* assignment)
   {
     const Clause* clause = formula_->getClause(ci);
     bool sat = false;
-    for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
+    for(const_lit_iterator l_iter = clause->begin_e(); !sat && l_iter != clause->end_e(); l_iter++)
       sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
       
     if(sat) continue;

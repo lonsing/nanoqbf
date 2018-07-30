@@ -2,8 +2,8 @@
 // Created by vedad on 27/06/18.
 //
 
-#ifndef MINIQBF_CLAUSE_H
-#define MINIQBF_CLAUSE_H
+#ifndef NANOQBF_CLAUSE_H
+#define NANOQBF_CLAUSE_H
 
 #include "common.h"
 #include <iosfwd>
@@ -40,4 +40,4 @@ struct Clause
 };
 
 
-#endif //MINIQBF_CLAUSE_H
+#endif //NANOQBF_CLAUSE_H
