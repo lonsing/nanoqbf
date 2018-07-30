@@ -39,6 +39,8 @@ struct Clause
   /// Orders clauses by their depth
   static inline bool depth_order(const Clause* a, const Clause* b);
   
+  inline size_t alloc_size() const;
+  
   /// Prints Clause \a c to output stream \a out
   friend std::ostream& operator<<(std::ostream& out, const Clause& c);
 };
@@ -46,6 +48,11 @@ struct Clause
 bool Clause::depth_order(const Clause* a, const Clause* b)
 {
   return a->depth < b->depth;
+}
+
+size_t Clause::alloc_size() const
+{
+  return ((sizeof (Clause) + (size_e + size_a - 2) * sizeof (Lit)) / sizeof(int));
 }
 
 

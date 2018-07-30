@@ -5,6 +5,8 @@
 #include "Formula.h"
 
 #include "Clause.h"
+#include "Arena.h"
+
 #include <algorithm>
 #include <iostream>
 
@@ -12,11 +14,16 @@ Formula::~Formula()
 {
   for (Quant* q : prefix)
     Quant::destroy_quant(q);
-  for (Clause* c : matrix)
-    Clause::destroy_clause(c);
+  if (arena) delete arena;
+  else
+  {
+    for (Clause* c : matrix)
+      Clause::destroy_clause(c);
+  }
 }
 
-Formula::Formula()
+Formula::Formula() :
+arena(nullptr)
 {
   prefix.push_back(nullptr);
   position_counters.push_back(0);
@@ -144,7 +151,29 @@ void Formula::finalise()
     c->depth = (unsigned)depth;
   }
   
+  // even though you'd think this makes the thing faster when branching
+  // it actually makes it slower for some reason, so it is commented out
   // std::sort(matrix.begin(), matrix.end(), Clause::depth_order);
+  
+  // move clauses into an arena for locality
+  size_t total_size = 0;
+  for(Clause* c : matrix) total_size += c->alloc_size();
+  
+  try
+  {
+    arena = new Arena(total_size);
+    for(unsigned ci = 0; ci < matrix.size(); ci++)
+    {
+      Clause* cp = arena->addClause(matrix[ci]);
+      Clause::destroy_clause(matrix[ci]);
+      matrix[ci] = cp;
+    }
+    assert(arena->full());
+  }
+  catch(std::bad_alloc& e)
+  {
+    std::cout << "Could not allocate arena for Formula" << std::endl;
+  }
 }
 
 

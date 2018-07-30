@@ -8,7 +8,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/AssureOutOfSourceBuilds.txt)
 AssureOutOfSourceBuilds()
 
 set(SOLVER_FILES main.cpp NanoQBF.cpp NanoQBF.h)
-set(TYPE_FILES types/Assignment.cpp types/Assignment.h types/Formula.cpp types/Formula.h types/common.h types/Quant.cpp types/Quant.h types/Clause.cpp types/Clause.h)
+set(TYPE_FILES types/Assignment.cpp types/Assignment.h types/Formula.cpp types/Formula.h types/common.h types/Quant.cpp types/Quant.h types/Clause.cpp types/Clause.h types/Arena.h)
 set(COMMON_FILES parseutils.h Reader.cpp Reader.h Logger.cpp Logger.h hashes.cpp hashes.h Options.cpp Options.h auxutils.h)
 set(SAT_FILES ipasir-maplesat.cpp ipasir.h SatSolver.h)
 

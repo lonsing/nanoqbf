@@ -14,6 +14,7 @@
 #include <assert.h>
 
 class Clause;
+class Arena;
 
 /// Class representing a quantified boolean formula
 class Formula
@@ -63,9 +64,10 @@ public:
   
 
 private:
-  
   std::vector<Quant*> prefix;  ///< Prefix of the QBF
   std::vector<Clause*> matrix; ///< Matrix of the QBF
+  Arena* arena;
+  
   unsigned int num_exists;     ///< Number of existential variables
   unsigned int num_forall;     ///< Number of universal variables
   
