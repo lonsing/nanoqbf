@@ -58,5 +58,13 @@ inline void Assignment::rehash()
   hash_value = std::_Hash_impl::hash(&(size), sizeof size + bits_size);
 }
 
+struct AssignmentIndex
+{
+  Assignment* assignment;
+  int index;
+  inline AssignmentIndex(Assignment* a, int i);
+};
+
+inline AssignmentIndex::AssignmentIndex(Assignment* a, int i) : assignment(a), index(i) {}
 
 #endif // NANOQBF_ASSIGNMENT_H

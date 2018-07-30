@@ -39,6 +39,9 @@ public:
   /// Reserves \num variable indexes inside #solver_
   inline Var reserveVars(unsigned num);
   
+  /// Returns #num_vars
+  inline unsigned numVars();
+  
   /// Checks whether there was a memory error
   inline bool hasMemory() const { return !mem_error; }
   
@@ -90,6 +93,11 @@ inline Var SatSolver::reserveVars(unsigned num)
   Var res = num_vars + 1;
   num_vars += num;
   return res;
+}
+
+inline unsigned SatSolver::numVars()
+{
+  return num_vars;
 }
 
 #endif //NANOQBF_SATSOLVER_H

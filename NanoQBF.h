@@ -57,8 +57,8 @@ private:
   std::vector<std::vector<Var>> subformula_vars_a_; ///< Variables used in each sub-formula of #solver_a_
   std::vector<std::vector<Var>> subformula_vars_b_; ///< Variables used in each sub-formula of #solver_b_
   
-  std::vector<Assignment*> subformula_exps_a_; ///< Vector of assignments that expanded a sub-formula in #solver_a_
-  std::vector<Assignment*> subformula_exps_b_; ///< Vector of assignments that expanded a sub-formula in #solver_b_
+  std::vector<AssignmentIndex> subformula_exps_a_; ///< Vector of assignments that expanded a sub-formula in #solver_a_
+  std::vector<AssignmentIndex> subformula_exps_b_; ///< Vector of assignments that expanded a sub-formula in #solver_b_
   
   Assumption assumptions_a_;
   Assumption assumptions_b_;
@@ -122,8 +122,9 @@ private:
    * it is checked whether they are satisfied by \a assignment. If not, the variables in the clause are replaced and
    * the new clause gets pushed into #solver_a_.
    * @param assignment An assignment to universal variables in #formula_
+   * @param index      The index of the sub-formula which produced the assignment
    */
-  void extendA(Assignment* assignment);
+  void extendA(Assignment* assignment, int index);
   
   /// Extends the formula in #solver_b_ by the given \a assignment
   /** Goes through the increasing sub-assignments of \a assignment according to the quantifiers, and checks whether
@@ -133,8 +134,9 @@ private:
    * it is checked whether they are satisfied by \a assignment. If not, the variables in the clause are replaced and
    * the tseitin transformation of the new cube gets pushed into #solver_b_.
    * @param assignment An assignment to existential variables in #formula_
+   * @param index      The index of the sub-formula which produced the assignment
    */
-  void extendB(Assignment* assignment);
+  void extendB(Assignment* assignment, int index);
   
   std::vector<Lit> extend_clause; ///< Temporary clause used in extendA(Assignment*) and extendB(Assignment*)
 };
