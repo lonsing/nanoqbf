@@ -27,8 +27,11 @@ public:
   /// Solves the given CNF
   inline int solve();
   
-  /// Adds a clause from a literal vector to the formula inside #solver_
-  inline void addClause(std::vector<Lit>& clause);
+  /// Adds a literal to the current clause in the formula inside #solver_
+  inline void add(Lit l);
+  
+  /// Pushes the current clause into #solver_
+  inline void push();
   
   /// Adds a clause from a Clause object to the formula inside #solver_
   inline void addClause(const Clause* clause);
@@ -62,10 +65,15 @@ inline int SatSolver::solve()
   return ipasir_solve(solver_);
 }
 
-inline void SatSolver::addClause(std::vector<Lit>& clause)
+inline void SatSolver::add(Lit l)
 {
-  for(const Lit l : clause)
-    mem_error |= ipasir_add(solver_, l);
+  assert(l != 0);
+  mem_error |= ipasir_add(solver_, l);
+  if(mem_error) throw std::bad_alloc();
+}
+
+inline void SatSolver::push()
+{
   mem_error |= ipasir_add(solver_, 0);
   if(mem_error) throw std::bad_alloc();
 }

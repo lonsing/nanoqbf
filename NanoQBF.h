@@ -131,7 +131,6 @@ private:
   
   Assignment* extend_uni; ///< Assignment used for smaller subassignments in extendA(Assignment*)
   Assignment* extend_exi; ///< Assignment used for smaller subassignments in extendB(Assignment*)
-  std::vector<Lit> extend_clause; ///< Temporary clause used in extendA(Assignment*) and extendB(Assignment*)
 };
 
 ////// INLINE FUNCTION DEFINITIONS //////

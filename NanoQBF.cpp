@@ -159,9 +159,8 @@ int NanoQBF::initA()
     extendA(assignment);
     
     for(unsigned vi = 0; vi < values.size(); vi++)
-      values[vi] = -values[vi];
-    
-    warmup_solver.addClause(values);
+      warmup_solver.add(-values[vi]);
+    warmup_solver.push();
   }
   
   if(!options_->structured_warmup) return 0;
@@ -378,14 +377,12 @@ void NanoQBF::extendA(Assignment* assignment)
     
     if(sat) continue;
   
-    extend_clause.clear();
     for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
     {
       Var v = var(*l_iter); bool s = sign(*l_iter);
-      extend_clause.push_back(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
+      solver_a_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
     }
-    
-    solver_a_.addClause(extend_clause);
+    solver_a_.push();
   }
 }
 
@@ -452,9 +449,6 @@ void NanoQBF::extendB(Assignment* assignment)
   subformula_vars_b_.push_back(subformula_vars);
   
   std::vector<Lit> global_nand;
-  std::vector<Lit> lit_cl;
-  lit_cl.push_back(0);
-  lit_cl.push_back(0);
   
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
@@ -465,26 +459,20 @@ void NanoQBF::extendB(Assignment* assignment)
       
     if(sat) continue;
   
-    extend_clause.clear();
+    Lit x_i = make_lit(solver_b_.reserveVars(1), false);
+    assert(x_i > 0);
+    global_nand.push_back(-x_i);
     
     for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
     {
-      Var v = var(*l_iter); bool s = sign(*l_iter);
-      extend_clause.push_back(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
-    }
-    
-    Lit x_i = make_lit(solver_b_.reserveVars(1), true);
-    assert(x_i < 0);
-    global_nand.push_back(x_i);
-    
-    lit_cl[0] = -x_i;
-    
-    for(const Lit l : extend_clause)
-    {
-      lit_cl[1] = -l;
-      solver_b_.addClause(lit_cl);
+      Var v = var(*l_iter); bool s = !sign(*l_iter);
+      solver_b_.add(x_i);
+      solver_b_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
+      solver_b_.push();
     }
   }
-  solver_b_.addClause(global_nand);
+  for(const Lit l : global_nand)
+    solver_b_.add(l);
+  solver_b_.push();
 }
 
