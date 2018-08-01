@@ -6,7 +6,7 @@
 #include "types/Formula.h"
 #include "auxutils.h"
 
-NanoQBF::NanoQBF(Formula* formula, const Options* options) :
+NanoQBF::NanoQBF(const Formula* formula, const Options* options) :
 formula_(formula),
 options_(options),
 iteration_(0),
@@ -30,9 +30,14 @@ NanoQBF::~NanoQBF()
   Assignment::destroy_assignment(extend_uni);
   Assignment::destroy_assignment(extend_exi);
   
-  for(const auto & a : subformula_solutions_a_)
+  for(Clause* c : learned_clauses_)
+    Clause::destroy_clause(c);
+  for(Clause* c : learned_cubes_)
+    Clause::destroy_clause(c);
+  
+  for(Assignment* a : subformula_solutions_a_)
     Assignment::destroy_assignment(a);
-  for(const auto & a : subformula_solutions_b_)
+  for(Assignment* a : subformula_solutions_b_)
     Assignment::destroy_assignment(a);
   
   for(const auto & av : vars_a_)
@@ -159,9 +164,8 @@ int NanoQBF::initA()
     extendA(assignment, -1);
     
     for(unsigned vi = 0; vi < values.size(); vi++)
-      values[vi] = -values[vi];
-    
-    warmup_solver.addClause(values);
+      warmup_solver.add(-values[vi]);
+    warmup_solver.push();
   }
   
   if(!options_->structured_warmup) return 0;
@@ -243,7 +247,7 @@ void NanoQBF::completeA()
       assert(quant->type == QuantType::FORALL);
       for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
       {
-        Var v_sub = vars[formula_->getDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
+        Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
         complete_values.push_back(solver_b_.getValue(v_sub));
       }
     }
@@ -254,7 +258,7 @@ void NanoQBF::completeA()
       continue;
   
     const Assignment* exp_assignment = subformula_exps_b_[si].assignment;
-    formula_->learn_blocking_clause(exp_assignment, assignment);
+    learn_blocking_clause(exp_assignment, assignment);
     
     counter += 1;
     
@@ -284,7 +288,7 @@ void NanoQBF::completeB()
       assert(quant->type == QuantType::EXISTS);
       for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
       {
-        Var v_sub = vars[formula_->getDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
+        Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
         complete_values.push_back(solver_a_.getValue(v_sub));
       }
     }
@@ -295,7 +299,7 @@ void NanoQBF::completeB()
       continue;
   
     const Assignment* exp_assignment = subformula_exps_a_[si].assignment;
-    formula_->learn_blocking_cube(assignment, exp_assignment);
+    learn_blocking_cube(assignment, exp_assignment);
     
     counter += 1;
     
@@ -336,6 +340,8 @@ void NanoQBF::extendA(Assignment* assignment, int index)
     qi = 1;
   }
   
+  unsigned depth = qi;
+  
   for(; qi < formula_->numQuants(); qi++)
   {
     const Quant* quant = formula_->getQuant(qi);
@@ -355,6 +361,7 @@ void NanoQBF::extendA(Assignment* assignment, int index)
       if(cache_iter == vars_a_.end())
       {
         cache_possible = false;
+        depth = qi;
         continue;
       }
       
@@ -370,6 +377,8 @@ void NanoQBF::extendA(Assignment* assignment, int index)
     }
   }
   
+  if(subformula_vars_a_.empty()) depth = 0;
+  
   subformula_vars_a_.push_back(subformula_vars);
   assumptions_a_.resize(solver_a_.numVars());
   qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
@@ -384,20 +393,20 @@ void NanoQBF::extendA(Assignment* assignment, int index)
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
     const Clause* clause = formula_->getClause(ci);
+    if(clause->depth < depth) continue; // the clause was added before
+    
     bool sat = false;
     for(const_lit_iterator l_iter = clause->begin_a(); !sat && l_iter != clause->end_a(); l_iter++)
       sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
     
     if(sat) continue;
   
-    extend_clause.clear();
     for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
     {
       Var v = var(*l_iter); bool s = sign(*l_iter);
-      extend_clause.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
+      solver_a_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
     }
-    
-    solver_a_.addClause(extend_clause);
+    solver_a_.push();
   }
 }
 
@@ -465,30 +474,24 @@ void NanoQBF::extendB(Assignment* assignment, int index)
   
   subformula_vars_b_.push_back(subformula_vars);
   
-  for(unsigned ci = 0; ci < formula_->numCubes(); ci++)
+  for(const Clause* clause : learned_cubes_)
   {
-    const Clause* clause = formula_->getCube(ci);
     bool sat = false;
     for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
       sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
     
     if(sat) continue;
     
-    extend_clause.clear();
     for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
     {
       Var v = var(*l_iter); bool s = sign(*l_iter);
-      extend_clause.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
+      solver_b_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
     }
     
-    solver_b_.addClause(extend_clause);
+    solver_b_.push();
   }
   
-  
   std::vector<Lit> global_nand;
-  std::vector<Lit> lit_cl;
-  lit_cl.push_back(0);
-  lit_cl.push_back(0);
   
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
@@ -499,26 +502,55 @@ void NanoQBF::extendB(Assignment* assignment, int index)
       
     if(sat) continue;
   
-    extend_clause.clear();
+    Lit x_i = make_lit(solver_b_.reserveVars(1), false);
+    assert(x_i > 0);
+    global_nand.push_back(-x_i);
     
     for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
     {
-      Var v = var(*l_iter); bool s = sign(*l_iter);
-      extend_clause.push_back(make_lit(subformula_vars[formula_->getDepth(v)] + formula_->getLocalPosition(v), s));
-    }
-    
-    Lit x_i = make_lit(solver_b_.reserveVars(1), true);
-    assert(x_i < 0);
-    global_nand.push_back(x_i);
-    
-    lit_cl[0] = -x_i;
-    
-    for(const Lit l : extend_clause)
-    {
-      lit_cl[1] = -l;
-      solver_b_.addClause(lit_cl);
+      Var v = var(*l_iter); bool s = !sign(*l_iter);
+      solver_b_.add(x_i);
+      solver_b_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
+      solver_b_.push();
     }
   }
-  solver_b_.addClause(global_nand);
+  for(const Lit l : global_nand)
+    solver_b_.add(l);
+  solver_b_.push();
 }
 
+void NanoQBF::learn_blocking(LearnType type, const Assignment* exi_assignment, const Assignment* uni_assignment)
+{
+  assert(exi_assignment->size <= formula_->numExistential());
+  assert(uni_assignment->size <= formula_->numUniversal());
+  
+  learn_exi.clear();
+  learn_uni.clear();
+  
+  unsigned ei = 0, fi = 0;
+  
+  for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
+  {
+    const Quant* quant = formula_->getQuant(qi);
+    // assure reduced clauses/cubes
+    if(ei == exi_assignment->size && type == LearnType::CLAUSE) break;
+    if(fi == uni_assignment->size && type == LearnType::CUBE) break;
+    
+    if(quant->type == EXISTS)
+    {
+      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end() && ei < exi_assignment->size; v_iter++)
+        learn_exi.push_back(make_lit(*v_iter, exi_assignment->get(ei++)));
+    }
+    else
+    {
+      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end() && fi < uni_assignment->size; v_iter++)
+        learn_uni.push_back(make_lit(*v_iter, uni_assignment->get(fi++)));
+    }
+  }
+  
+  Clause* clause = Clause::make_clause(learn_exi, learn_uni);
+  if(type == LearnType::CLAUSE)
+    learned_clauses_.push_back(clause);
+  else
+    learned_cubes_.push_back(clause);
+}

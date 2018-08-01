@@ -27,7 +27,7 @@ public:
    * @param formula Input QBF Formula
    * @param options Options for fine tuning the solver
    */
-  NanoQBF(Formula* formula, const Options* options);
+  NanoQBF(const Formula* formula, const Options* options);
   
   /// NanoQBF Destructor
   ~NanoQBF();
@@ -40,7 +40,13 @@ public:
    */
   int solve();
 private:
-  Formula* formula_; ///< QBF Formula which should be solved
+  const Formula* formula_;                    ///< QBF Formula which should be solved
+  
+  enum LearnType {CLAUSE, CUBE};
+  
+  std::vector<Clause*> learned_clauses_; ///< learned blocking clauses
+  std::vector<Clause*> learned_cubes_;   ///< learned blocking cubes
+  
   const Options* options_; ///< Options fine tuning the behavior of the solver
   
   SatSolver solver_a_; ///< SatSolver used for solving the universal expansion
@@ -140,7 +146,14 @@ private:
   
   Assignment* extend_uni; ///< Assignment used for smaller subassignments in extendA(Assignment*)
   Assignment* extend_exi; ///< Assignment used for smaller subassignments in extendB(Assignment*)
-  std::vector<Lit> extend_clause; ///< Temporary clause used in extendA(Assignment*) and extendB(Assignment*)
+  
+  inline void learn_blocking_clause(const Assignment* exi_assignment, const Assignment* uni_assignment);
+  inline void learn_blocking_cube(const Assignment* exi_assignment, const Assignment* uni_assignment);
+  
+  /// Learn a clause or cube
+  void learn_blocking(LearnType type, const Assignment* exi_assignment, const Assignment* uni_assignment);
+  std::vector<Lit> learn_exi;
+  std::vector<Lit> learn_uni;
 };
 
 ////// INLINE FUNCTION DEFINITIONS //////
@@ -197,5 +210,16 @@ void NanoQBF::pruneCheckB()
   
   if(prune_periodic || prune_dynamic || forced_prune_b_) pruneB(), forced_prune_b_ = false;
 }
+
+inline void NanoQBF::learn_blocking_clause(const Assignment* exi_assignment, const Assignment* uni_assignment)
+{
+  learn_blocking(CLAUSE, exi_assignment, uni_assignment);
+}
+
+inline void NanoQBF::learn_blocking_cube(const Assignment* exi_assignment, const Assignment* uni_assignment)
+{
+  learn_blocking(CUBE, exi_assignment, uni_assignment);
+}
+
 
 #endif // NANOQBF_NANOQBF_H

@@ -4,7 +4,10 @@
 
 #include "Formula.h"
 
+#include "Assignment.h"
 #include "Clause.h"
+#include "Arena.h"
+
 #include <algorithm>
 #include <iostream>
 
@@ -12,11 +15,16 @@ Formula::~Formula()
 {
   for (Quant* q : prefix)
     Quant::destroy_quant(q);
-  for (Clause* c : matrix)
-    Clause::destroy_clause(c);
+  if (arena) delete arena;
+  else
+  {
+    for (Clause* c : matrix)
+      Clause::destroy_clause(c);
+  }
 }
 
-Formula::Formula()
+Formula::Formula() :
+arena(nullptr)
 {
   prefix.push_back(nullptr);
   position_counters.push_back(0);
@@ -64,41 +72,6 @@ void Formula::addClause(std::vector<Lit>& c)
   
   Clause* clause = Clause::make_clause(tmp_exists, tmp_forall);
   matrix.push_back(clause);
-}
-
-void Formula::learn_blocking(LearnType type, const Assignment* exi_assignment, const Assignment* uni_assignment)
-{
-  assert(exi_assignment->size <= num_exists);
-  assert(uni_assignment->size <= num_forall);
-  
-  tmp_exists.clear();
-  tmp_forall.clear();
-  
-  unsigned ei = 0, fi = 0;
-  
-  for(const Quant* quant : prefix)
-  {
-    // assure reduced clauses/cubes
-    if(ei == exi_assignment->size && type == LearnType::CLAUSE) break;
-    if(fi == uni_assignment->size && type == LearnType::CUBE) break;
-    
-    if(quant->type == EXISTS)
-    {
-      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end() && ei < exi_assignment->size; v_iter++)
-        tmp_exists.push_back(make_lit(*v_iter, exi_assignment->get(ei++)));
-    }
-    else
-    {
-      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end() && fi < uni_assignment->size; v_iter++)
-        tmp_forall.push_back(make_lit(*v_iter, uni_assignment->get(fi++)));
-    }
-  }
-  
-  Clause* clause = Clause::make_clause(tmp_exists, tmp_forall);
-  if(type == LearnType::CLAUSE)
-    matrix.push_back(clause);
-  else
-    negated_cubes.push_back(clause);
 }
 
 int Formula::addQuantifier(QuantType type, std::vector<Var>& variables)
@@ -149,6 +122,8 @@ void Formula::finalise()
   }
   else
   {
+    for(Var v : free_variables) quant_depth[v] = 0;
+    
     prefix[0] = Quant::make_quant(QuantType::EXISTS, free_variables);
   }
   
@@ -165,8 +140,41 @@ void Formula::finalise()
   
   for(unsigned qi = 2; qi < prefix.size(); qi++)
     position_offset[qi] = position_offset[qi - 2] + prefix[qi-2]->size;
-
-  num_original = (unsigned)matrix.size();
+  
+  for(Clause* c : matrix)
+  {
+    int depth = -1;
+    for(const_lit_iterator l = c->begin_e(); l != c->end_e(); l++)
+      depth = std::max(depth, quant_depth[var(*l)]);
+    for(const_lit_iterator l = c->begin_a(); l != c->end_a(); l++)
+      depth = std::max(depth, quant_depth[var(*l)]);
+    assert(depth != -1 && (unsigned)depth < prefix.size());
+    c->depth = (unsigned)depth;
+  }
+  
+  // even though you'd think this makes the thing faster when branching
+  // it actually makes it slower for some reason, so it is commented out
+  std::sort(matrix.begin(), matrix.end(), Clause::depth_order);
+  
+  // move clauses into an arena for locality
+  size_t total_size = 0;
+  for(Clause* c : matrix) total_size += c->alloc_size();
+  
+  try
+  {
+    arena = new Arena(total_size);
+    for(unsigned ci = 0; ci < matrix.size(); ci++)
+    {
+      Clause* cp = arena->addClause(matrix[ci]);
+      Clause::destroy_clause(matrix[ci]);
+      matrix[ci] = cp;
+    }
+    assert(arena->full());
+  }
+  catch(std::bad_alloc& e)
+  {
+    std::cout << "Could not allocate arena for Formula" << std::endl;
+  }
 }
 
 

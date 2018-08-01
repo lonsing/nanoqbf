@@ -7,13 +7,15 @@
 
 #include "common.h"
 #include "Quant.h"
-#include "Assignment.h"
 
 #include <iosfwd>
 #include <vector>
 #include <assert.h>
 
 class Clause;
+class Arena;
+class Assignment;
+
 
 /// Class representing a quantified boolean formula
 class Formula
@@ -37,9 +39,6 @@ public:
    */
   void addClause(std::vector<Lit>& c);
   
-  inline void learn_blocking_clause(const Assignment* exi_assignment, const Assignment* uni_assignment);
-  inline void learn_blocking_cube(const Assignment* exi_assignment, const Assignment* uni_assignment);
-  
   /// Adds an existential variable \a v to #free_variables
   void addFreeVar(Var v);
   
@@ -51,37 +50,26 @@ public:
   
   inline unsigned long numVars() const;
   inline unsigned long numClauses() const;
-  inline unsigned long numCubes() const;
   inline unsigned long numQuants() const;
   inline const Clause* getClause(unsigned index) const;
-  inline const Clause* getCube(unsigned index) const;
   inline const Quant* getQuant(unsigned index) const;
   inline unsigned int numExistential() const;
   inline unsigned int numUniversal() const;
   inline unsigned int getGlobalPosition(Var v) const;
   inline unsigned int getLocalPosition(Var v) const;
-  inline int getDepth(Var v) const;
+  inline int getVarDepth(Var v) const;
   
   /// Prints Formula \a f to output stream \a out
   friend std::ostream& operator<<(std::ostream& out, const Formula& f);
-
+  
 private:
-  
-  enum LearnType
-  {
-    CLAUSE,
-    CUBE
-  };
-  
   std::vector<Quant*> prefix;  ///< Prefix of the QBF
   std::vector<Clause*> matrix; ///< Matrix of the QBF
   
-  std::vector<Clause*> negated_cubes;   ///< negated learned blocking cubes
+  Arena* arena;
   
   unsigned int num_exists;     ///< Number of existential variables
   unsigned int num_forall;     ///< Number of universal variables
-  
-  unsigned int num_original;
   
   std::vector<int> quant_depth;            ///< Lookup table: \n index is the variable \n value is the quantifier
   std::vector<unsigned> quant_position;    ///< Lookup table: \n index is the variable \n value is position
@@ -95,8 +83,7 @@ private:
   /// Quantifies variable \a v at quantifier with index \a depth
   int quantify(const Var v, unsigned depth);
   
-  /// Learn a clause or cube
-  void learn_blocking(LearnType type, const Assignment* exi_assignment, const Assignment* uni_assignment);
+  
 };
 
 ////// INLINE FUNCTION DEFINITIONS //////
@@ -113,16 +100,6 @@ inline bool Formula::isExistential(Var v) const
          prefix[quant_depth[v]]->type == QuantType::EXISTS;
 }
 
-inline void Formula::learn_blocking_clause(const Assignment* exi_assignment, const Assignment* uni_assignment)
-{
-  learn_blocking(CLAUSE, exi_assignment, uni_assignment);
-}
-
-inline void Formula::learn_blocking_cube(const Assignment* exi_assignment, const Assignment* uni_assignment)
-{
-  learn_blocking(CUBE, exi_assignment, uni_assignment);
-}
-
 inline unsigned long Formula::numVars() const
 {
   return quant_depth.size() - 1;
@@ -133,11 +110,6 @@ inline unsigned long Formula::numClauses() const
   return matrix.size();
 }
 
-inline unsigned long Formula::numCubes() const
-{
-  return negated_cubes.size();
-}
-
 inline unsigned long Formula::numQuants() const
 {
   return prefix.size();
@@ -146,11 +118,6 @@ inline unsigned long Formula::numQuants() const
 inline const Clause* Formula::getClause(unsigned index) const
 {
   return matrix[index];
-}
-
-inline const Clause* Formula::getCube(unsigned index) const
-{
- return negated_cubes[index];
 }
 
 inline const Quant* Formula::getQuant(unsigned index) const
@@ -180,7 +147,7 @@ inline unsigned int Formula::getLocalPosition(Var v) const
   return quant_position[v];
 }
 
-inline int Formula::getDepth(Var v) const
+inline int Formula::getVarDepth(Var v) const
 {
   assert(isQuantified(v));
   return quant_depth[v];
