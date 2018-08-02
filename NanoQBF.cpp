@@ -259,6 +259,8 @@ void NanoQBF::completeA()
   Assignment* assignment = Assignment::make_assignment(formula_->numUniversal());
   std::vector<AssignmentIndex> exps;
   
+  assumptions_b_.resize(solver_b_.numVars());
+  
   for(unsigned si = 0; si < subformula_vars_b_.size(); si++)
   {
     const std::vector<Var>& vars = subformula_vars_b_[si];
@@ -304,6 +306,8 @@ void NanoQBF::completeB()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numExistential());
   std::vector<AssignmentIndex> exps;
+  
+  assumptions_a_.resize(solver_a_.numVars());
   
   for(unsigned si = 0; si < subformula_vars_a_.size(); si++)
   {
@@ -405,7 +409,7 @@ void NanoQBF::extendA(Assignment* assignment, int index)
   if(subformula_vars_a_.empty()) depth = 0;
   
   subformula_vars_a_.push_back(subformula_vars);
-  assumptions_a_.resize(solver_a_.numVars());
+  assumptions_a_.resize(solver_b_.numVars());
   
   int origin_id = (index == -1) ? -1 : subformula_exps_b_[index].index;
   
