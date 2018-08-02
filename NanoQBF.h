@@ -167,7 +167,10 @@ void NanoQBF::pruneA()
   for(const auto & bs : subformula_solutions_b_)
     Assignment::destroy_assignment(bs);
   subformula_solutions_b_.clear();
+  for(AssignmentIndex& ai : subformula_exps_b_)
+    ai.index = -1;
   subformula_exps_a_.clear();
+  assumptions_a_.resize(0);
   solver_a_.reset();
   const Quant* q = formula_->getQuant(0);
   if(q->type == QuantType::EXISTS)
@@ -184,7 +187,10 @@ void NanoQBF::pruneB()
   for(const auto & as : subformula_solutions_a_)
     Assignment::destroy_assignment(as);
   subformula_solutions_a_.clear();
-  subformula_exps_b_.clear();
+  for(AssignmentIndex& ai : subformula_exps_a_)
+    ai.index = -1;
+  subformula_exps_a_.clear();
+  assumptions_b_.resize(0);
   solver_b_.reset();
   const Quant* q = formula_->getQuant(0);
   if(q->type == QuantType::FORALL)

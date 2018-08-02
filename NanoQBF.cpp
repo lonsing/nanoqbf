@@ -81,14 +81,19 @@ int NanoQBF::solve()
     LOG("c complete time B: %f", time_complete_b);
   
     time_tmp = read_cpu_time();
-    int res_a = solver_a_.solve();
-    while(res_a == -1)
+    while(true)
     {
-      printf("c Solver A went out of memory, pruning and trying again\n");
-      pruneA(), completeA(), forced_prune_b_ = true;
-      res_a = solver_a_.solve();
+      solver_a_.assume(&assumptions_a_);
+      int res_a = solver_a_.solve();
+      while(res_a == -1)
+      {
+        printf("c Solver A went out of memory, pruning and trying again\n");
+        pruneA(), completeA(), forced_prune_b_ = true;
+        res_a = solver_a_.solve();
+      }
+      if(res_a == 10) break;
+      if(res_a == 20 && !solver_a_.failed(&assumptions_a_)) return 20;
     }
-    if(res_a == 20) return 20;
     time_solve_a += read_cpu_time() - time_tmp;
   
     pruneCheckB();
@@ -106,14 +111,19 @@ int NanoQBF::solve()
     time_complete_b += read_cpu_time() - time_tmp;
     
     time_tmp = read_cpu_time();
-    int res_b = solver_b_.solve();
-    while(res_b == -1)
+    while(true)
     {
-      printf("c Solver B went out of memory, pruning and trying again\n");
-      pruneB(), completeB(), forced_prune_a_ = true;
-      res_b = solver_b_.solve();
+      solver_b_.assume(&assumptions_b_);
+      int res_b = solver_b_.solve();
+      while(res_b == -1)
+      {
+        printf("c Solver B went out of memory, pruning and trying again\n");
+        pruneB(), completeB(), forced_prune_a_ = true;
+        res_b = solver_b_.solve();
+      }
+      if(res_b == 10) break;
+      if(res_b == 20 && !solver_b_.failed(&assumptions_b_)) return 10;
     }
-    if(res_b == 20) return 10;
     time_solve_b += read_cpu_time() - time_tmp;
     
     pruneCheckA();
@@ -161,6 +171,7 @@ int NanoQBF::initA()
     Assignment* assignment = Assignment::make_assignment(values);
     std::cout << *assignment << std::endl;
     
+    subformula_solutions_b_.insert(assignment);
     extendA(assignment, -1);
     
     for(unsigned vi = 0; vi < values.size(); vi++)
@@ -194,8 +205,14 @@ int NanoQBF::initA()
     assignment_n->rehash();
     assignment_p->rehash();
     
-    extendA(assignment_n, -1);
-    extendA(assignment_p, -1);
+    if(subformula_solutions_b_.find(assignment_n) == subformula_solutions_b_.end())
+      subformula_solutions_b_.insert(assignment_n), extendA(assignment_n, -1);
+    else
+      Assignment::destroy_assignment(assignment_n);
+    if(subformula_solutions_b_.find(assignment_p) == subformula_solutions_b_.end())
+      subformula_solutions_b_.insert(assignment_p), extendA(assignment_p, -1);
+    else
+      Assignment::destroy_assignment(assignment_p);
   }
   
   for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
@@ -222,8 +239,15 @@ int NanoQBF::initA()
     assignment_n->rehash();
     assignment_p->rehash();
     
-    extendB(assignment_n, -1);
-    extendB(assignment_p, -1);
+    if(subformula_solutions_a_.find(assignment_n) == subformula_solutions_a_.end())
+      subformula_solutions_a_.insert(assignment_n), extendB(assignment_n, -1);
+    else
+      Assignment::destroy_assignment(assignment_n);
+    
+    if(subformula_solutions_a_.find(assignment_p) == subformula_solutions_a_.end())
+      subformula_solutions_a_.insert(assignment_p), extendB(assignment_p, -1);
+    else
+      Assignment::destroy_assignment(assignment_p);
   }
   
   return 0;
@@ -233,8 +257,7 @@ int NanoQBF::initA()
 void NanoQBF::completeA()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numUniversal());
-  
-  unsigned counter = 0;
+  std::vector<AssignmentIndex> exps;
   
   for(unsigned si = 0; si < subformula_vars_b_.size(); si++)
   {
@@ -251,21 +274,28 @@ void NanoQBF::completeA()
         complete_values.push_back(solver_b_.getValue(v_sub));
       }
     }
+    
+    for(Lit l : complete_values)
+      assumptions_b_.set(var(l), sign(l) ? Assumption::Value::TRUE : Assumption::Value::FALSE);
+    
     assignment->update(complete_values);
     assignment->rehash();
     
     if(subformula_solutions_b_.find(assignment) != subformula_solutions_b_.end())
       continue;
   
-    const Assignment* exp_assignment = subformula_exps_b_[si].assignment;
-    learn_blocking_clause(exp_assignment, assignment);
+    // const Assignment* exp_assignment = subformula_exps_b_[si].assignment;
+    // learn_blocking_clause(exp_assignment, assignment);
     
-    counter += 1;
-    
-    extendA(Assignment::copy_assignment(assignment), si);
+    Assignment * a = Assignment::copy_assignment(assignment);
+    exps.emplace_back(a, si);
+    subformula_solutions_b_.insert(a);
   }
   
-  assert(counter != 0);
+  assert(exps.size() != 0);
+  
+  for(AssignmentIndex& ai : exps)
+    extendA(ai.assignment, ai.index);
   
   Assignment::destroy_assignment(assignment);
 }
@@ -274,8 +304,7 @@ void NanoQBF::completeA()
 void NanoQBF::completeB()
 {
   Assignment* assignment = Assignment::make_assignment(formula_->numExistential());
-  
-  unsigned counter = 0;
+  std::vector<AssignmentIndex> exps;
   
   for(unsigned si = 0; si < subformula_vars_a_.size(); si++)
   {
@@ -292,21 +321,29 @@ void NanoQBF::completeB()
         complete_values.push_back(solver_a_.getValue(v_sub));
       }
     }
+  
+  
+    for(Lit l : complete_values)
+      assumptions_a_.set(var(l), sign(l) ? Assumption::Value::TRUE : Assumption::Value::FALSE);
+  
     assignment->update(complete_values);
     assignment->rehash();
   
     if(subformula_solutions_a_.find(assignment) != subformula_solutions_a_.end())
       continue;
   
-    const Assignment* exp_assignment = subformula_exps_a_[si].assignment;
-    learn_blocking_cube(assignment, exp_assignment);
-    
-    counter += 1;
-    
-    extendB(Assignment::copy_assignment(assignment), si);
+    // const Assignment* exp_assignment = subformula_exps_a_[si].assignment;
+    // learn_blocking_cube(assignment, exp_assignment);
+  
+    Assignment * a = Assignment::copy_assignment(assignment);
+    exps.emplace_back(a, si);
+    subformula_solutions_a_.insert(a);
   }
   
-  assert(counter != 0);
+  assert(exps.size() != 0);
+  
+  for(AssignmentIndex& ai : exps)
+    extendB(ai.assignment, ai.index);
   
   Assignment::destroy_assignment(assignment);
 }
@@ -315,15 +352,6 @@ void NanoQBF::completeB()
 void NanoQBF::extendA(Assignment* assignment, int index)
 {
   // LOG("extendA start:\n");
-
-  if(unlikely(!subformula_solutions_b_.insert(assignment).second))
-  {
-    LOG("Aaborting extendA, tried double extend with:\n");
-    std::cout << "c" << *assignment << std::endl;
-    Assignment::destroy_assignment(assignment);
-    return;
-  }
-  
   subformula_exps_a_.emplace_back(assignment, index);
   
   bool cache_possible = true;
@@ -381,13 +409,22 @@ void NanoQBF::extendA(Assignment* assignment, int index)
   
   subformula_vars_a_.push_back(subformula_vars);
   assumptions_a_.resize(solver_a_.numVars());
-  qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
-  for(; qi + 2 < formula_->numQuants(); qi += 2)
+  
+  int origin_id = (index == -1) ? -1 : subformula_exps_b_[index].index;
+  
+  if(origin_id != -1)
   {
-    const Quant* quant = formula_->getQuant(qi);
-    assert(quant->type == QuantType::EXISTS);
-    
-    // TODO
+    qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
+    std::vector<Var>& origin_vars = subformula_vars_a_[origin_id];
+    for(; qi + 2 < formula_->numQuants(); qi += 2)
+    {
+      const Quant* quant = formula_->getQuant(qi);
+      assert(quant->type == QuantType::EXISTS);
+      Var v0 = origin_vars[qi];
+      Var v1 = subformula_vars[qi];
+      for(unsigned vi = 0; vi < quant->size; vi++)
+        assumptions_a_.set(v1 + vi, assumptions_a_.get(v0 + vi));
+    }
   }
   
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
@@ -413,14 +450,6 @@ void NanoQBF::extendA(Assignment* assignment, int index)
 void NanoQBF::extendB(Assignment* assignment, int index)
 {
   // LOG("extendB start:\n");
-  
-  if(unlikely(!subformula_solutions_a_.insert(assignment).second))
-  {
-    LOG("Aaborting extendB, tried double extend with:\n");
-    std::cout << "c" << *assignment << std::endl;
-    Assignment::destroy_assignment(assignment);
-    return;
-  }
   
   subformula_exps_b_.emplace_back(assignment, index);
   
@@ -473,7 +502,27 @@ void NanoQBF::extendB(Assignment* assignment, int index)
   }
   
   subformula_vars_b_.push_back(subformula_vars);
+  assumptions_b_.resize(solver_b_.numVars());
   
+  int origin_id = (index == -1) ? -1 : subformula_exps_a_[index].index;
+  
+  if(origin_id != -1)
+  {
+    qi = (unsigned)(formula_->getQuant(0)->type == QuantType::EXISTS);
+    std::vector<Var>& origin_vars = subformula_vars_b_[origin_id];
+    for(; qi + 2 < formula_->numQuants(); qi += 2)
+    {
+      const Quant* quant = formula_->getQuant(qi);
+      assert(quant->type == QuantType::FORALL);
+      Var v0 = origin_vars[qi];
+      Var v1 = subformula_vars[qi];
+      for(unsigned vi = 0; vi < quant->size; vi++)
+        assumptions_b_.set(v1 + vi, assumptions_b_.get(v0 + vi));
+    }
+  }
+  
+  
+  /*
   for(const Clause* clause : learned_cubes_)
   {
     bool sat = false;
@@ -490,6 +539,7 @@ void NanoQBF::extendB(Assignment* assignment, int index)
     
     solver_b_.push();
   }
+  */
   
   std::vector<Lit> global_nand;
   

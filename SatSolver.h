@@ -6,9 +6,9 @@
 #define NANOQBF_SATSOLVER_H
 
 #include "ipasir.h"
-#include "types/Assignment.h"
 #include "Logger.h"
 #include "types/Clause.h"
+#include "types/Assumption.h"
 #include <vector>
 
 /// A SAT solver interface using IPASIR
@@ -29,6 +29,12 @@ public:
   
   /// Adds a literal to the current clause in the formula inside #solver_
   inline void add(Lit l);
+  
+  /// Adds all assumptions in \a a to the solver #solver_
+  inline void assume(Assumption* a);
+  
+  /// Adds all assumptions in \a a to the solver #solver_
+  inline bool failed(Assumption* a);
   
   /// Pushes the current clause into #solver_
   inline void push();
@@ -107,5 +113,35 @@ inline unsigned SatSolver::numVars()
 {
   return num_vars;
 }
+
+inline void SatSolver::assume(Assumption* a)
+{
+  for(unsigned ai = 1; ai < a->size(); ai++)
+  {
+    Assumption::Value vali = a->get(ai);
+    if(vali == Assumption::Value::NONE) continue;
+    ipasir_assume(solver_, make_lit(ai, vali == Assumption::Value::FALSE));
+  }
+}
+
+
+inline bool SatSolver::failed(Assumption* a)
+{
+  for(unsigned ai = 1; ai < a->size(); ai++)
+  {
+    Assumption::Value vali = a->get(ai);
+    if(vali == Assumption::Value::NONE) continue;
+    if(ipasir_failed(solver_, make_lit(ai, vali == Assumption::Value::FALSE)))
+    {
+      a->resize(0);
+      a->resize(num_vars);
+      return true;
+    }
+  }
+  return false;
+}
+
+
+
 
 #endif //NANOQBF_SATSOLVER_H
