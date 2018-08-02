@@ -189,7 +189,7 @@ void NanoQBF::pruneB()
   subformula_solutions_a_.clear();
   for(AssignmentIndex& ai : subformula_exps_a_)
     ai.index = -1;
-  subformula_exps_a_.clear();
+  subformula_exps_b_.clear();
   assumptions_b_.resize(0);
   solver_b_.reset();
   const Quant* q = formula_->getQuant(0);

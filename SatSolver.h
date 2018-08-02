@@ -141,7 +141,4 @@ inline bool SatSolver::failed(Assumption* a)
   return false;
 }
 
-
-
-
 #endif //NANOQBF_SATSOLVER_H
