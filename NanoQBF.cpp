@@ -275,7 +275,7 @@ void NanoQBF::completeA()
         Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
         complete_values.push_back(solver_b_.getValue(v_sub));
         if(qi + 2 < formula_->numQuants())
-          assumptions_a_.set(var(complete_values.back()), sign(complete_values.back()) ? Assumption::Value::TRUE : Assumption::Value::FALSE);
+          assumptions_b_.set(var(complete_values.back()), sign(complete_values.back()) ? Assumption::Value::TRUE : Assumption::Value::FALSE);
       }
     }
     
