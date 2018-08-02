@@ -27,7 +27,7 @@ private:
 
 void Assumption::resize(size_t size)
 {
-  bits.resize(2 * size, false);
+  bits.resize(2 * size + 2, false);
 }
 
 Assumption::Value Assumption::get(size_t index) const
