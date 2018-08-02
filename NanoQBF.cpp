@@ -409,7 +409,7 @@ void NanoQBF::extendA(Assignment* assignment, int index)
   if(subformula_vars_a_.empty()) depth = 0;
   
   subformula_vars_a_.push_back(subformula_vars);
-  assumptions_a_.resize(solver_b_.numVars());
+  assumptions_a_.resize(solver_a_.numVars());
   
   int origin_id = (index == -1) ? -1 : subformula_exps_b_[index].index;
   
