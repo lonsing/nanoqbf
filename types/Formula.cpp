@@ -153,7 +153,7 @@ void Formula::finalise()
   
   // even though you'd think this makes the thing faster when branching
   // it actually makes it slower for some reason, so it is commented out
-  std::sort(matrix.begin(), matrix.end(), Clause::depth_order);
+  // std::sort(matrix.begin(), matrix.end(), Clause::depth_order);
   
   // move clauses into an arena for locality
   size_t total_size = 0;

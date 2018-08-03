@@ -31,7 +31,7 @@ top(0)
 
 Arena::~Arena()
 {
-  delete memory;
+  delete[] memory;
 }
 
 inline Clause* Arena::addClause(Clause* clause)
