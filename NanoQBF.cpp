@@ -285,8 +285,8 @@ void NanoQBF::completeA()
     if(subformula_solutions_b_.find(assignment) != subformula_solutions_b_.end())
       continue;
   
-    // const Assignment* exp_assignment = subformula_exps_b_[si].assignment;
-    // learn_blocking_clause(exp_assignment, assignment);
+    const Assignment* exp_assignment = subformula_exps_b_[si].assignment;
+    learn_blocking_clause(exp_assignment, assignment);
     
     Assignment * a = Assignment::copy_assignment(assignment);
     exps.emplace_back(a, si);
@@ -333,8 +333,8 @@ void NanoQBF::completeB()
     if(subformula_solutions_a_.find(assignment) != subformula_solutions_a_.end())
       continue;
   
-    // const Assignment* exp_assignment = subformula_exps_a_[si].assignment;
-    // learn_blocking_cube(assignment, exp_assignment);
+    const Assignment* exp_assignment = subformula_exps_a_[si].assignment;
+    learn_blocking_cube(assignment, exp_assignment);
   
     Assignment * a = Assignment::copy_assignment(assignment);
     exps.emplace_back(a, si);
