@@ -428,6 +428,23 @@ void NanoQBF::extendA(Assignment* assignment, int index)
     }
   }
   
+  // add learned clauses
+  for(const Clause* clause : learned_clauses_)
+  {
+    bool sat = false;
+    for(const_lit_iterator l_iter = clause->begin_a(); !sat && l_iter != clause->end_a(); l_iter++)
+      sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
+    
+    if(sat) continue;
+    
+    for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
+    {
+      Var v = var(*l_iter); bool s = sign(*l_iter);
+      solver_a_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
+    }
+    solver_a_.push();
+  }
+  
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
     const Clause* clause = formula_->getClause(ci);
@@ -522,8 +539,7 @@ void NanoQBF::extendB(Assignment* assignment, int index)
     }
   }
   
-  
-  /*
+  // add learned cubes
   for(const Clause* clause : learned_cubes_)
   {
     bool sat = false;
@@ -537,10 +553,8 @@ void NanoQBF::extendB(Assignment* assignment, int index)
       Var v = var(*l_iter); bool s = sign(*l_iter);
       solver_b_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
     }
-    
     solver_b_.push();
   }
-  */
   
   std::vector<Lit> global_nand;
   
@@ -565,6 +579,7 @@ void NanoQBF::extendB(Assignment* assignment, int index)
       solver_b_.push();
     }
   }
+  
   for(const Lit l : global_nand)
     solver_b_.add(l);
   solver_b_.push();
