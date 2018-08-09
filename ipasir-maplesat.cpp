@@ -75,7 +75,6 @@ public:
     // MapleSAT by default produces non standard conforming messages.
     // So either we have to set this to '0' or patch the sources.
     verbosity = 0;
-    phase_saving = 2;
   }
   
   ~IPAsirMapleSAT()
