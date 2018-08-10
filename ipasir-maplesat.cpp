@@ -96,6 +96,38 @@ public:
     }
   }
   
+  int extern_import(int lit)
+  {
+    try
+    {
+      while (abs(lit) > nVars()) (void) newVar();
+      return 0;
+    }
+    catch(Minisat::OutOfMemoryException e)
+    {
+      return 1;
+    }
+  }
+  
+  int reserve(unsigned size)
+  {
+    try
+    {
+      clause.growTo(size);
+      return 0;
+    }
+    catch(Minisat::OutOfMemoryException e)
+    {
+      return 1;
+    }
+  }
+  
+  int set(unsigned pos, int lit)
+  {
+    clause[pos] = import(lit);
+    return 0;
+  }
+  
   void assume(int lit)
   {
     reset();
@@ -180,6 +212,15 @@ int ipasir_solve(void* s)
 
 int ipasir_add(void* s, int l)
 { return import(s)->add(l); }
+
+int ipasir_import (void * s, int l)
+{ return import(s)->extern_import(l); }
+
+int ipasir_reserve(void* s, unsigned size)
+{ return import(s)->reserve(size); }
+
+int ipasir_set(void* s, unsigned p, int l)
+{ return import(s)->set(p, l); }
 
 void ipasir_assume(void* s, int l)
 { import(s)->assume(l); }

@@ -21,6 +21,7 @@ forced_prune_b_(false)
   else
     solver_b_.reserveVars(qfirst->size);
   
+  extend_sat.resize(formula_->numClauses(), 0);
   extend_exi = Assignment::make_assignment(formula_->numExistential());
   extend_uni = Assignment::make_assignment(formula_->numUniversal());
 }
@@ -227,75 +228,79 @@ int NanoQBF::initA()
 
 void NanoQBF::completeA()
 {
-  Assignment* assignment = Assignment::make_assignment(formula_->numUniversal());
-  
-  unsigned counter = 0;
-  
-  for(const std::vector<Var>& vars : subformula_vars_b_)
+  std::vector<Assignment*> found(subformula_vars_b_.size(), nullptr);
+  #pragma omp parallel
   {
-    unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::EXISTS);
-    complete_values.clear();
-    for(; qi < formula_->numQuants(); qi += 2)
+    Assignment* assignment = Assignment::make_assignment(formula_->numUniversal());
+    std::vector<Lit> comp_vals;
+    #pragma omp for nowait
+    for(unsigned vi = 0; vi < subformula_vars_b_.size(); vi++)
     {
-      const Quant* quant = formula_->getQuant(qi);
-      assert(quant->type == QuantType::FORALL);
-      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
+      const std::vector<Var>& vars = subformula_vars_b_[vi];
+      unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::EXISTS);
+      comp_vals.clear();
+      for(; qi < formula_->numQuants(); qi += 2)
       {
-        Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
-        complete_values.push_back(solver_b_.getValue(v_sub));
+        const Quant* quant = formula_->getQuant(qi);
+        assert(quant->type == QuantType::FORALL);
+        for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
+        {
+          Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
+          comp_vals.push_back(solver_b_.getValue(v_sub));
+        }
       }
+      assignment->update(comp_vals);
+      assignment->rehash();
+      
+      if(subformula_solutions_b_.find(assignment) != subformula_solutions_b_.end())
+        continue;
+      
+      found[vi] = Assignment::copy_assignment(assignment);
     }
-    assignment->update(complete_values);
-    assignment->rehash();
     
-    if(subformula_solutions_b_.find(assignment) != subformula_solutions_b_.end())
-      continue;
-    
-    counter += 1;
-    
-    extendA(Assignment::copy_assignment(assignment));
+    Assignment::destroy_assignment(assignment);
   }
-  
-  assert(counter != 0);
-  
-  Assignment::destroy_assignment(assignment);
+  for(Assignment* a : found)
+    if(a != nullptr) extendA(a);
 }
 
 
 void NanoQBF::completeB()
 {
-  Assignment* assignment = Assignment::make_assignment(formula_->numExistential());
-  
-  unsigned counter = 0;
-  
-  for(const std::vector<Var>& vars : subformula_vars_a_)
+  std::vector<Assignment*> found(subformula_vars_a_.size(), nullptr);
+  #pragma omp parallel
   {
-    unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
-    complete_values.clear();
-    for(; qi < formula_->numQuants(); qi += 2)
+    Assignment* assignment = Assignment::make_assignment(formula_->numExistential());
+    std::vector<Lit> comp_vals;
+    #pragma omp for nowait
+    for(unsigned vi = 0; vi < subformula_vars_a_.size(); vi++)
     {
-      const Quant* quant = formula_->getQuant(qi);
-      assert(quant->type == QuantType::EXISTS);
-      for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
+      const std::vector<Var>& vars = subformula_vars_a_[vi];
+      unsigned qi = (unsigned)(formula_->getQuant(0)->type == QuantType::FORALL);
+      comp_vals.clear();
+      for(; qi < formula_->numQuants(); qi += 2)
       {
-        Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
-        complete_values.push_back(solver_a_.getValue(v_sub));
+        const Quant* quant = formula_->getQuant(qi);
+        assert(quant->type == QuantType::EXISTS);
+        for(const_var_iterator v_iter = quant->begin(); v_iter != quant->end(); v_iter++)
+        {
+          Var v_sub = vars[formula_->getVarDepth(*v_iter)] + formula_->getLocalPosition(*v_iter);
+          comp_vals.push_back(solver_a_.getValue(v_sub));
+        }
       }
+      assignment->update(comp_vals);
+      assignment->rehash();
+    
+      if(subformula_solutions_a_.find(assignment) != subformula_solutions_a_.end())
+        continue;
+      
+      found[vi] = Assignment::copy_assignment(assignment);
     }
-    assignment->update(complete_values);
-    assignment->rehash();
   
-    if(subformula_solutions_a_.find(assignment) != subformula_solutions_a_.end())
-      continue;
-    
-    counter += 1;
-    
-    extendB(Assignment::copy_assignment(assignment));
+    Assignment::destroy_assignment(assignment);
   }
-  
-  assert(counter != 0);
-  
-  Assignment::destroy_assignment(assignment);
+  for(Assignment* a : found)
+    if(a != nullptr) extendB(a);
 }
 
 
@@ -305,8 +310,8 @@ void NanoQBF::extendA(Assignment* assignment)
   
   if(unlikely(!subformula_solutions_b_.insert(assignment).second))
   {
-    LOG("Aaborting extendA, tried double extend with:\n");
-    std::cout << "c" << *assignment << std::endl;
+    LOG("Aaborting extendA, tried double extend\n");
+    // std::cout << "c" << *assignment << std::endl;
     Assignment::destroy_assignment(assignment);
     return;
   }
@@ -366,21 +371,27 @@ void NanoQBF::extendA(Assignment* assignment)
   
   subformula_vars_a_.push_back(subformula_vars);
   
+  extend_sat.assign(formula_->numClauses(), 0);
+  #pragma omp parallel for schedule(static)
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
     const Clause* clause = formula_->getClause(ci);
-    if(clause->depth < depth) continue; // the clause was added before
-    
-    bool sat = false;
-    for(const_lit_iterator l_iter = clause->begin_a(); !sat && l_iter != clause->end_a(); l_iter++)
-      sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
-    
-    if(sat) continue;
+    if (clause->depth < depth) continue; // the clause was added before
   
-    for(const_lit_iterator l_iter = clause->begin_e(); l_iter != clause->end_e(); l_iter++)
+    char& sat = extend_sat[ci];
+    for (const_lit_iterator l_iter = clause->begin_a(); !sat && l_iter < clause->end_a(); l_iter++)
+      sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
+  }
+  for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
+  {
+    if(extend_sat[ci]) continue;
+    const Clause* clause = formula_->getClause(ci);
+    solver_a_.reserveClause(clause->size_e);
+    for(const_lit_iterator l_iter = clause->begin_e(); l_iter < clause->end_e(); l_iter++)
     {
       Var v = var(*l_iter); bool s = sign(*l_iter);
-      solver_a_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
+      solver_a_.setLit((unsigned int)(l_iter - clause->begin_e()), make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
+      // solver_a_.add(make_lit(subformula_vars[formula_->getVarDepth(v)] + formula_->getLocalPosition(v), s));
     }
     solver_a_.push();
   }
@@ -392,8 +403,8 @@ void NanoQBF::extendB(Assignment* assignment)
   
   if(unlikely(!subformula_solutions_a_.insert(assignment).second))
   {
-    LOG("Aaborting extendB, tried double extend with:\n");
-    std::cout << "c" << *assignment << std::endl;
+    LOG("Aaborting extendB, tried double extend\n");
+    // std::cout << "c" << *assignment << std::endl;
     Assignment::destroy_assignment(assignment);
     return;
   }
@@ -449,16 +460,19 @@ void NanoQBF::extendB(Assignment* assignment)
   subformula_vars_b_.push_back(subformula_vars);
   
   std::vector<Lit> global_nand;
-  
+  extend_sat.assign(formula_->numClauses(), 0);
+  #pragma omp parallel for schedule(static)
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
     const Clause* clause = formula_->getClause(ci);
-    bool sat = false;
-    for(const_lit_iterator l_iter = clause->begin_e(); !sat && l_iter != clause->end_e(); l_iter++)
+    char& sat = extend_sat[ci];
+    for (const_lit_iterator l_iter = clause->begin_e(); !sat && l_iter < clause->end_e(); l_iter++)
       sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
-      
-    if(sat) continue;
-  
+  }
+  for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
+  {
+    if(extend_sat[ci]) continue;
+    const Clause* clause = formula_->getClause(ci);
     Lit x_i = make_lit(solver_b_.reserveVars(1), false);
     assert(x_i > 0);
     global_nand.push_back(-x_i);

@@ -30,6 +30,12 @@ public:
   /// Adds a literal to the current clause in the formula inside #solver_
   inline void add(Lit l);
   
+  /// Reserves space for the current clause in the formula inside #solver_
+  inline void reserveClause(unsigned size);
+  
+  /// Set literal at given position in the current clause in the formula inside #solver_
+  inline void setLit(unsigned pos, Lit l);
+  
   /// Pushes the current clause into #solver_
   inline void push();
   
@@ -72,6 +78,18 @@ inline void SatSolver::add(Lit l)
   if(mem_error) throw std::bad_alloc();
 }
 
+inline void SatSolver::reserveClause(unsigned size)
+{
+  mem_error |= ipasir_reserve(solver_, size);
+  if(mem_error) throw std::bad_alloc();
+}
+
+inline void SatSolver::setLit(unsigned pos, Lit l)
+{
+  mem_error |= ipasir_set(solver_, pos, l);
+  if(mem_error) throw std::bad_alloc();
+}
+
 inline void SatSolver::push()
 {
   mem_error |= ipasir_add(solver_, 0);
@@ -97,6 +115,8 @@ inline Var SatSolver::reserveVars(unsigned num)
 {
   Var res = num_vars + 1;
   num_vars += num;
+  mem_error |= ipasir_import(solver_, res);
+  if(mem_error) throw std::bad_alloc();
   return res;
 }
 

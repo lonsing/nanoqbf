@@ -22,6 +22,16 @@ if ( ZLIB_FOUND )
     target_link_libraries( test_types ${ZLIB_LIBRARIES} )
 endif( ZLIB_FOUND )
 
+include(FindOpenMP)
+if( OPENMP_FOUND AND NOT NO_PARALLEL )
+    message(STATUS "Using OpenMP")
+    target_compile_options(nanoqbf PRIVATE ${OpenMP_CXX_FLAGS})
+    target_link_libraries(nanoqbf OpenMP::OpenMP_CXX)
+else()
+    message(STATUS "Not using OpenMP")
+    target_compile_options(nanoqbf PRIVATE -Wno-unknown-pragmas)
+endif( OPENMP_FOUND AND NOT NO_PARALLEL )
+
 include(ExternalProject)
 
 ExternalProject_Add(maplesat

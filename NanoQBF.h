@@ -129,6 +129,7 @@ private:
    */
   void extendB(Assignment* assignment);
   
+  std::vector<char> extend_sat;
   Assignment* extend_uni; ///< Assignment used for smaller subassignments in extendA(Assignment*)
   Assignment* extend_exi; ///< Assignment used for smaller subassignments in extendB(Assignment*)
 };

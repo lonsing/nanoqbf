@@ -71,6 +71,11 @@ void ipasir_release (void * solver);
  */
 int ipasir_add (void * solver, int lit_or_zero);
 
+int ipasir_import (void * solver, int lit_or_zero);
+
+int ipasir_set (void * solver, unsigned pos, int lit_or_zero);
+int ipasir_reserve (void * solver, unsigned size);
+
 /**
  * Add an assumption for the next SAT search (the next call
  * of ipasir_solve). After calling ipasir_solve all the
