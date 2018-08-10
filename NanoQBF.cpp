@@ -376,9 +376,9 @@ void NanoQBF::extendA(Assignment* assignment)
   for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
   {
     const Clause* clause = formula_->getClause(ci);
-    if (clause->depth < depth) continue; // the clause was added before
-  
+    
     char& sat = extend_sat[ci];
+    sat |= (clause->depth < depth); // the clause was added before
     for (const_lit_iterator l_iter = clause->begin_a(); !sat && l_iter < clause->end_a(); l_iter++)
       sat = sat | (sign(*l_iter) != assignment->get(formula_->getGlobalPosition(var(*l_iter))));
   }
