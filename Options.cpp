@@ -16,6 +16,7 @@ Options::Options() :
   pparams_b(PruningParams(100)),
   warmup_samples(16),
   structured_warmup(true),
+  covering_warmup(true),
   file_name("")
 {}
 
@@ -33,6 +34,8 @@ const Options* Options::make_options(int argc, const char* argv[])
     ("w,warmup-samples", "Number of warmup assignments", cxxopts::value<int>())
     ("do-structured-warmup", "Activate structured warmup when initialising A (default)")
     ("no-structured-warmup", "Deactivate structured warmup when initialising A")
+    ("do-covering-warmup", "Activate covering warmup when initialising A (default)")
+    ("no-covering-warmup", "Deactivate covering warmup when initialising A")
     ("p,pruning-a", "Pruning mode A: none, periodic or dynamic", cxxopts::value<std::string>())
     ("q,pruning-b", "Pruning mode B: none, periodic or dynamic", cxxopts::value<std::string>())
     ("period-a", "Number of iterations inbetween prunings of A", cxxopts::value<int>())
@@ -83,6 +86,15 @@ const Options* Options::make_options(int argc, const char* argv[])
     if(result.count("no-structured-warmup"))
       opt->structured_warmup = false;
   
+    if(result.count("do-covering-warmup") && result.count("no-covering-warmup"))
+      throw cxxopts::OptionException("Covering warmup is either active or inactive, cannot be both");
+  
+    if(result.count("do-covering-warmup"))
+      opt->covering_warmup = true;
+  
+    if(result.count("no-covering-warmup"))
+      opt->covering_warmup = false;
+    
     if(result.count("pruning-a"))
       opt->pruning_a = parsePruning(result["pruning-a"].as<std::string>());
   
@@ -144,10 +156,12 @@ std::ostream& operator<<(std::ostream& out, const Options& opt)
       << "c   time      = " << opt.time_limit << std::endl
       << "c   memory    = " << opt.memory_limit << std::endl
       << "c   warmup    = " << opt.warmup_samples << std::endl
+      << "c   s-warmup  = " << opt.structured_warmup << std::endl
+      << "c   c-warmup  = " << opt.covering_warmup << std::endl
       << "c   pruning-a = " << opt.pruning_a << std::endl
       << "c    period-a = " << opt.pparams_a.period << std::endl
       << "c   pruning-b = " << opt.pruning_b << std::endl
       << "c    period-b = " << opt.pparams_b.period << std::endl
-      << "c   input    = " << opt.file_name << std::endl;
+      << "c   input     = " << opt.file_name << std::endl;
   return out;
 }

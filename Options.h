@@ -41,6 +41,7 @@ struct Options
   PruningParams pparams_b;     ///< Pruning parameters used in NanoQBF::pruneCheckB()
   unsigned int warmup_samples; ///< Number of initial sub-formulas generated in NanoQBF::initA()
   bool structured_warmup;      ///< Whether structured warmup will be done in NanoQBF::initA()
+  bool covering_warmup;        ///< Whether covering warmup will be done in NanoQBF::initA()
   std::string file_name;       ///< File name of the QDIMACS file containing the QBF
 };
 

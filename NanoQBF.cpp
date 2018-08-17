@@ -5,6 +5,7 @@
 #include "NanoQBF.h"
 #include "types/Formula.h"
 #include "auxutils.h"
+#include "types/Partial.h"
 
 NanoQBF::NanoQBF(const Formula* formula, const Options* options) :
 formula_(formula),
@@ -154,7 +155,7 @@ int NanoQBF::initA()
         values.push_back(warmup_solver.getValue(*v_iter));
     }
     Assignment* assignment = Assignment::make_assignment(values);
-    std::cout << *assignment << std::endl;
+    // std::cout << *assignment << std::endl;
     
     extendA(assignment);
     
@@ -163,62 +164,104 @@ int NanoQBF::initA()
     warmup_solver.push();
   }
   
-  if(!options_->structured_warmup) return 0;
-  
-  for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
+  if(options_->structured_warmup)
   {
-    const Quant* quant = formula_->getQuant(qi);
-    if(quant->type == QuantType::EXISTS) continue;
-    Assignment* assignment_n = Assignment::make_assignment(formula_->numUniversal());
-    Assignment* assignment_p = Assignment::make_assignment(formula_->numUniversal());
-    
-    unsigned pos = 0;
-    for(unsigned qni = 0; qni < formula_->numQuants(); qni++)
+    for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
     {
-      const Quant* quant_i = formula_->getQuant(qni);
-      if(quant_i->type == QuantType::EXISTS) continue;
-      bool valn = (qi == qni);
-      for(unsigned vi = 0; vi < quant_i->size; vi++)
+      const Quant* quant = formula_->getQuant(qi);
+      if(quant->type == QuantType::EXISTS) continue;
+      Assignment* assignment_n = Assignment::make_assignment(formula_->numUniversal());
+      Assignment* assignment_p = Assignment::make_assignment(formula_->numUniversal());
+      
+      unsigned pos = 0;
+      for(unsigned qni = 0; qni < formula_->numQuants(); qni++)
       {
-        assignment_n->set(pos + vi, valn);
-        assignment_p->set(pos + vi, !valn);
+        const Quant* quant_i = formula_->getQuant(qni);
+        if(quant_i->type == QuantType::EXISTS) continue;
+        bool valn = (qi == qni);
+        for(unsigned vi = 0; vi < quant_i->size; vi++)
+        {
+          assignment_n->set(pos + vi, valn);
+          assignment_p->set(pos + vi, !valn);
+        }
+        pos += quant_i->size;
       }
-      pos += quant_i->size;
+      
+      assignment_n->rehash();
+      assignment_p->rehash();
+      
+      extendA(assignment_n);
+      extendA(assignment_p);
     }
     
-    assignment_n->rehash();
-    assignment_p->rehash();
+    for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
+    {
+      const Quant* quant = formula_->getQuant(qi);
+      if(quant->type == QuantType::FORALL) continue;
+      Assignment* assignment_n = Assignment::make_assignment(formula_->numExistential());
+      Assignment* assignment_p = Assignment::make_assignment(formula_->numExistential());
+      
+      unsigned pos = 0;
+      for(unsigned qni = 0; qni < formula_->numQuants(); qni++)
+      {
+        const Quant* quant_i = formula_->getQuant(qni);
+        if(quant_i->type == QuantType::FORALL) continue;
+        bool valn = (qi == qni);
+        for(unsigned vi = 0; vi < quant_i->size; vi++)
+        {
+          assignment_n->set(pos + vi, valn);
+          assignment_p->set(pos + vi, !valn);
+        }
+        pos += quant_i->size;
+      }
     
-    extendA(assignment_n);
-    extendA(assignment_p);
+      assignment_n->rehash();
+      assignment_p->rehash();
+      
+      extendB(assignment_n);
+      extendB(assignment_p);
+    }
   }
   
-  for(unsigned qi = 0; qi < formula_->numQuants(); qi++)
+  if(options_->covering_warmup)
   {
-    const Quant* quant = formula_->getQuant(qi);
-    if(quant->type == QuantType::FORALL) continue;
-    Assignment* assignment_n = Assignment::make_assignment(formula_->numExistential());
-    Assignment* assignment_p = Assignment::make_assignment(formula_->numExistential());
+    std::vector<bool> covered(formula_->numClauses(), false);
+    Partial assignment;
+    assignment.resize(formula_->numUniversal());
     
-    unsigned pos = 0;
-    for(unsigned qni = 0; qni < formula_->numQuants(); qni++)
-    {
-      const Quant* quant_i = formula_->getQuant(qni);
-      if(quant_i->type == QuantType::FORALL) continue;
-      bool valn = (qi == qni);
-      for(unsigned vi = 0; vi < quant_i->size; vi++)
-      {
-        assignment_n->set(pos + vi, valn);
-        assignment_p->set(pos + vi, !valn);
-      }
-      pos += quant_i->size;
-    }
+    for(unsigned ci = 0; ci < formula_->numClauses(); ci++)
+      covered[ci] = (formula_->getClause(ci)->size_a == 0);
   
-    assignment_n->rehash();
-    assignment_p->rehash();
-    
-    extendB(assignment_n);
-    extendB(assignment_p);
+    bool all_covered;
+    Partial::Value lookup[2] = {Partial::Value::FALSE, Partial::Value::TRUE};
+    do
+    {
+      all_covered = true;
+      assignment.resize(0);
+      assignment.resize(formula_->numUniversal());
+      for(unsigned comp = 0; comp != 2; comp++)
+      {
+        for(unsigned ci = 0; ci < formula_->numClauses(); all_covered &= covered[ci], ci++)
+        {
+          if(!comp && covered[ci]) continue;
+          const Clause* clause = formula_->getClause(ci);
+          bool consistent = true;
+          for(const_lit_iterator l_iter = clause->begin_a(); consistent && l_iter != clause->end_a(); l_iter++)
+            consistent &= (assignment.get(formula_->getGlobalPosition(var(*l_iter))) != lookup[!sign(*l_iter)]);
+          if(!consistent) continue;
+          for(const_lit_iterator l_iter = clause->begin_a(); l_iter != clause->end_a(); l_iter++)
+            assignment.set(formula_->getGlobalPosition(var(*l_iter)), lookup[sign(*l_iter)]);
+          covered[ci] = true;
+        }
+      }
+      Assignment* full = Assignment::make_assignment(formula_->numUniversal());
+      for(unsigned ui = 0; ui < formula_->numUniversal(); ui++)
+        full->set(ui, (assignment.get(ui) == Partial::Value::TRUE));
+      full->rehash();
+      // std::cout << *full << std::endl;
+      extendA(full);
+    }
+    while(!all_covered);
   }
   
   return 0;
@@ -385,6 +428,7 @@ void NanoQBF::extendA(Assignment* assignment)
     solver_a_.push();
   }
 }
+
 
 void NanoQBF::extendB(Assignment* assignment)
 {

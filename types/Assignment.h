@@ -10,6 +10,7 @@
 #include <assert.h>
 
 #include "common.h"
+#include "Partial.h"
 
 /// Structure representing an assignment of truth values to variables
 struct Assignment
