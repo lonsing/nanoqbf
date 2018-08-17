@@ -3,6 +3,8 @@ cmake-build-debug/
 release/
 debug/
 build/
+parallel/
+no-parallel/
 doc/
 CMakeFiles/
 CMakeCache.txt
